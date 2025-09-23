@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers'
 import { getServerSupabase } from '@/lib/supabaseServer'
 
 async function getPending() {
