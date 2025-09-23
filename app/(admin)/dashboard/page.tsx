@@ -1,4 +1,5 @@
 import { getServerSupabase } from '@/lib/supabaseServer'
+import { redirect } from 'next/navigation'
 
 async function getStats() {
   const supabase = await getServerSupabase()
@@ -22,6 +23,11 @@ async function getStats() {
 }
 
 export default async function DashboardPage() {
+  const supabase = await getServerSupabase()
+  const { data } = await supabase.auth.getUser()
+  if (!data.user) {
+    redirect('/login?redirect=/dashboard')
+  }
   const stats = await getStats()
   return (
     <main>
