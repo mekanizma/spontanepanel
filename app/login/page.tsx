@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getActionSupabase, getServerSupabase } from '@/lib/supabaseServer'
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
   const supabase = await getServerSupabase()
   const { data } = await supabase.auth.getUser()
   if (data.user) redirect('/dashboard')
@@ -13,9 +13,9 @@ export default async function LoginPage() {
     const supa = await getActionSupabase()
     const { error } = await supa.auth.signInWithPassword({ email, password })
     if (error) {
-      return { ok: false, message: 'Giriş başarısız' }
+      redirect('/login?error=1')
     }
-    return redirect('/dashboard')
+    redirect('/dashboard')
   }
 
   async function logout() {
@@ -28,6 +28,9 @@ export default async function LoginPage() {
   return (
     <main style={{ padding: 24, maxWidth: 400 }}>
       <h1>Admin Giriş</h1>
+      {searchParams?.error ? (
+        <div style={{ color: 'red', marginTop: 8 }}>Giriş başarısız. Bilgileri kontrol edin.</div>
+      ) : null}
       <form action={login} style={{ display: 'grid', gap: 8, marginTop: 16 }}>
         <input type="email" name="email" placeholder="E-posta" required />
         <input type="password" name="password" placeholder="Şifre" required />
