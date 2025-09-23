@@ -19,8 +19,7 @@ export function middleware(req: NextRequest) {
   // Supabase auth cookie kontrolü
   const hasSession = req.cookies.has('sb-access-token') || req.cookies.has('sb:token') || req.cookies.get('supabase-auth-token')
   if (!hasSession) {
-    // Giriş sayfası yoksa ana sayfaya yönlendir
-    const redirectUrl = new URL('/', req.url)
+    const redirectUrl = new URL('/login', req.url)
     redirectUrl.searchParams.set('redirect', url.pathname)
     return NextResponse.redirect(redirectUrl)
   }
