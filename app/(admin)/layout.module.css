@@ -1,0 +1,27 @@
+.container {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100dvh;
+}
+
+.sidebar {
+  border-right: 1px solid #eee;
+  padding: 16px;
+}
+
+.brand {
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.content {
+  padding: 24px;
+}
+
+
