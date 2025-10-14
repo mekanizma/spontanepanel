@@ -6,6 +6,9 @@ export async function middleware(req: NextRequest) {
   
   const res = NextResponse.next()
   
+  // Tüm cookie'leri logla
+  console.log('🍪 Tüm cookie\'ler:', req.cookies.getAll().map(c => `${c.name}=${c.value.substring(0, 20)}...`))
+  
   // Supabase client oluştur
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,11 +17,11 @@ export async function middleware(req: NextRequest) {
       cookies: {
         get(name: string) {
           const cookie = req.cookies.get(name)?.value
-          console.log(`🍪 Cookie ${name}:`, cookie ? 'var' : 'yok')
+          console.log(`🍪 Cookie ${name}:`, cookie ? `${cookie.substring(0, 20)}...` : 'yok')
           return cookie
         },
         set(name: string, value: string, options: any) {
-          console.log(`🍪 Cookie set ${name}:`, value ? 'var' : 'yok')
+          console.log(`🍪 Cookie set ${name}:`, value ? `${value.substring(0, 20)}...` : 'yok')
           res.cookies.set(name, value, options)
         },
         remove(name: string, options: any) {
@@ -37,10 +40,11 @@ export async function middleware(req: NextRequest) {
   ]
 
   // Kullanıcıyı kontrol et
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error } = await supabase.auth.getUser()
   
   console.log('🔍 Middleware - Path:', req.nextUrl.pathname)
   console.log('🔍 Middleware - User:', user?.email)
+  console.log('🔍 Middleware - Error:', error?.message)
   console.log('🔍 Middleware - Admin emails:', adminEmails)
   console.log('🔍 Middleware - User exists:', !!user)
 

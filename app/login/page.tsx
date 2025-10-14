@@ -72,8 +72,12 @@ function LoginForm() {
           const redirectTo = searchParams.get('redirect') || '/dashboard'
           console.log('🎯 YÖNLENDİRME HEDEFİ:', redirectTo)
           
-          // Hemen yönlendir
-          window.location.href = redirectTo
+          // Cookie'lerin set edilmesi için kısa bekleme
+          console.log('⏳ Cookie\'lerin set edilmesi için bekleniyor...')
+          setTimeout(() => {
+            console.log('🚀 Yönlendirme yapılıyor:', redirectTo)
+            window.location.href = redirectTo
+          }, 1000)
         } else {
           console.log('❌ ADMIN DEĞİL!')
           setError('Bu e-posta adresi admin yetkisine sahip değil.')
