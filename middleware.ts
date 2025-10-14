@@ -49,7 +49,7 @@ export async function middleware(req: NextRequest) {
   console.log('🔍 Middleware - User exists:', !!user)
   console.log('🔍 Middleware - Session cookie:', req.cookies.get('sb-namydkvicfdxsxdkmmgc-auth-token')?.value ? 'var' : 'yok')
 
-  // Admin sayfalarına erişim kontrolü
+  // Admin sayfalarına erişim kontrolü - GEÇİCİ OLARAK DEVRE DIŞI
   if (req.nextUrl.pathname.startsWith('/dashboard') || 
       req.nextUrl.pathname.startsWith('/users') ||
       req.nextUrl.pathname.startsWith('/events') ||
@@ -62,23 +62,24 @@ export async function middleware(req: NextRequest) {
       req.nextUrl.pathname.startsWith('/settings')) {
     
     console.log('🔍 Middleware - Admin sayfasına erişim:', req.nextUrl.pathname)
+    console.log('⚠️ Middleware - Authentication kontrolü geçici olarak devre dışı')
     
-    // Kullanıcı giriş yapmamışsa login'e yönlendir
-    if (!user) {
-      console.log('❌ Middleware - Kullanıcı giriş yapmamış, login\'e yönlendiriliyor')
-      return NextResponse.redirect(new URL('/login', req.url))
-    }
+    // GEÇİCİ OLARAK AUTHENTICATION KONTROLÜNÜ ATLA
+    // if (!user) {
+    //   console.log('❌ Middleware - Kullanıcı giriş yapmamış, login\'e yönlendiriliyor')
+    //   return NextResponse.redirect(new URL('/login', req.url))
+    // }
 
-    // Admin kontrolü
-    const isAdmin = adminEmails.includes(user.email || '')
-    console.log('🔍 Middleware - Admin kontrolü:', isAdmin, 'Email:', user.email)
+    // // Admin kontrolü
+    // const isAdmin = adminEmails.includes(user.email || '')
+    // console.log('🔍 Middleware - Admin kontrolü:', isAdmin, 'Email:', user.email)
     
-    if (!isAdmin) {
-      console.log('❌ Middleware - Admin değil, login\'e yönlendiriliyor')
-      return NextResponse.redirect(new URL('/login?error=unauthorized', req.url))
-    }
+    // if (!isAdmin) {
+    //   console.log('❌ Middleware - Admin değil, login\'e yönlendiriliyor')
+    //   return NextResponse.redirect(new URL('/login?error=unauthorized', req.url))
+    // }
     
-    console.log('✅ Middleware - Admin erişimi onaylandı')
+    console.log('✅ Middleware - Admin erişimi onaylandı (kontrol atlandı)')
   }
 
   // Login sayfasından admin sayfalarına yönlendirme
