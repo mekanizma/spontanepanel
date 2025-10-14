@@ -83,20 +83,24 @@ function LoginForm() {
               
               if (session) {
                 console.log('🚀 Session hazır, yönlendirme yapılıyor:', redirectTo)
-                router.push(redirectTo)
+                // Cookie'lerin set edilmesi için ekstra bekleme
+                setTimeout(() => {
+                  console.log('🚀 Cookie\'ler set edildi, yönlendirme:', redirectTo)
+                  router.push(redirectTo)
+                }, 500)
               } else {
                 console.log('⚠️ Session henüz hazır değil, tekrar deneniyor...')
                 setTimeout(() => {
                   console.log('🚀 İkinci deneme yönlendirme:', redirectTo)
                   router.push(redirectTo)
-                }, 500)
+                }, 1000)
               }
             } catch (error) {
               console.error('Session kontrolü hatası:', error)
               console.log('🚀 Hata durumunda yönlendirme:', redirectTo)
               router.push(redirectTo)
             }
-          }, 1500)
+          }, 2000)
         } else {
           console.log('❌ ADMIN DEĞİL!')
           setError('Bu e-posta adresi admin yetkisine sahip değil.')
