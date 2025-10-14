@@ -1,5 +1,5 @@
-import { getServerSupabase } from '@/lib/supabaseServer'
-import { redirect } from 'next/navigation'
+// import { getServerSupabase } from '@/lib/supabaseServer'
+// import { redirect } from 'next/navigation'
 
 export default async function SettingsPage() {
   // Geçici olarak auth kontrolünü devre dışı bırak

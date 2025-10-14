@@ -17,7 +17,7 @@ interface Event {
     username: string
     full_name: string
     profile_image_url: string | null
-  }
+  } | null
 }
 
 export default function EventsPage() {
@@ -29,11 +29,11 @@ export default function EventsPage() {
     async function loadEvents() {
       console.log('🎉 Events yükleniyor...')
       
-      // Doğrudan Supabase client oluştur
+      // Environment variables kullan
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(
-        'https://fbiibwhupuxizqacvhdt.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
 
       try {
@@ -84,8 +84,8 @@ export default function EventsPage() {
     try {
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(
-        'https://fbiibwhupuxizqacvhdt.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
       const { error } = await supabase.from('events').update({ status: 'approved' }).eq('id', id)
       
@@ -107,8 +107,8 @@ export default function EventsPage() {
     try {
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(
-        'https://fbiibwhupuxizqacvhdt.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
       const { error } = await supabase.from('events').update({ status: 'rejected' }).eq('id', id)
       
@@ -130,8 +130,8 @@ export default function EventsPage() {
     try {
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(
-        'https://fbiibwhupuxizqacvhdt.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
       const { error } = await supabase.from('events').update({ status: 'inactive' }).eq('id', id)
       

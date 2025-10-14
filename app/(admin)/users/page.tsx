@@ -25,11 +25,11 @@ export default function UsersPage() {
     async function loadUsers() {
       console.log('👥 Users yükleniyor...')
       
-      // Doğrudan Supabase client oluştur
+      // Environment variables kullan
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(
-        'https://fbiibwhupuxizqacvhdt.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
       
       try {
@@ -98,8 +98,8 @@ export default function UsersPage() {
     try {
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(
-        'https://fbiibwhupuxizqacvhdt.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
       const { error } = await supabase.from('users').update({ is_suspended: true }).eq('id', userId)
       
@@ -121,8 +121,8 @@ export default function UsersPage() {
     try {
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(
-        'https://fbiibwhupuxizqacvhdt.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
       const { error } = await supabase.from('users').update({ is_suspended: false }).eq('id', userId)
       
@@ -148,8 +148,8 @@ export default function UsersPage() {
     try {
       const { createClient } = await import('@supabase/supabase-js')
       const supabase = createClient(
-        'https://fbiibwhupuxizqacvhdt.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
       const { error } = await supabase.from('users').delete().eq('id', userId)
       

@@ -1,5 +1,5 @@
-import { getServerSupabase } from '@/lib/supabaseServer'
-import { redirect } from 'next/navigation'
+// import { getServerSupabase } from '@/lib/supabaseServer'
+// import { redirect } from 'next/navigation'
 
 async function getPremiumUsers() {
   const supabase = await getServerSupabase()
