@@ -1,6 +1,4 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
 interface Event {
   id: string
@@ -20,132 +18,57 @@ interface Event {
   }[] | null
 }
 
-export default function EventsPage() {
-  const [events, setEvents] = useState<Event[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+async function getEvents(): Promise<Event[]> {
+  console.log('🎉 Events yükleniyor...')
+  
+  const supabase = createServiceSupabaseClient()
 
-  useEffect(() => {
-    async function loadEvents() {
-      console.log('🎉 Events yükleniyor...')
-      
-      // Service Role Key kullan
-      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
-      const supabase = await getServiceSupabaseClient()
+  try {
+    console.log('🎉 Events tablosundan veri çekiliyor...')
+    const { data: events, error } = await supabase
+      .from('events')
+      .select(`
+        id,
+        title,
+        description,
+        start_time,
+        end_time,
+        location,
+        image_url,
+        creator_id,
+        status,
+        created_at,
+        users!creator_id (
+          username,
+          full_name,
+          profile_image_url
+        )
+      `)
+      .order('created_at', { ascending: false })
 
-      try {
-        console.log('🎉 Events tablosundan veri çekiliyor...')
-        const { data: events, error } = await supabase
-          .from('events')
-          .select(`
-            id,
-            title,
-            description,
-            start_time,
-            end_time,
-            location,
-            image_url,
-            creator_id,
-            status,
-            created_at,
-            users!creator_id (
-              username,
-              full_name,
-              profile_image_url
-            )
-          `)
-          .order('created_at', { ascending: false })
+    console.log('🎉 Events sonucu:', { count: events?.length, error })
 
-        console.log('🎉 Events sonucu:', { count: events?.length, error })
-
-        if (error) {
-          console.error('Etkinlikler yüklenirken hata:', error)
-          setError('Etkinlikler yüklenirken hata oluştu')
-          setLoading(false)
-          return
-        }
-
-        setEvents(events || [])
-        setLoading(false)
-      } catch (error) {
-        console.error('Etkinlikler yüklenirken genel hata:', error)
-        setError('Etkinlikler yüklenirken hata oluştu')
-        setLoading(false)
-      }
+    if (error) {
+      console.error('Etkinlikler yüklenirken hata:', error)
+      throw new Error('Etkinlikler yüklenirken hata oluştu')
     }
 
-    loadEvents()
-  }, [])
-
-  async function approveEvent(id: string) {
-    try {
-      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
-      const supabase = await getServiceSupabaseClient()
-      const { error } = await supabase.from('events').update({ status: 'approved' }).eq('id', id)
-      
-      if (error) {
-        console.error('Etkinlik onaylanırken hata:', error)
-        return
-      }
-      
-      // UI'yi güncelle
-      setEvents(events.map(event => 
-        event.id === id ? { ...event, status: 'approved' } : event
-      ))
-    } catch (error) {
-      console.error('Etkinlik onaylanırken genel hata:', error)
-    }
+    return events || []
+  } catch (error) {
+    console.error('Etkinlikler yüklenirken genel hata:', error)
+    throw new Error('Etkinlikler yüklenirken hata oluştu')
   }
+}
 
-  async function rejectEvent(id: string) {
-    try {
-      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
-      const supabase = await getServiceSupabaseClient()
-      const { error } = await supabase.from('events').update({ status: 'rejected' }).eq('id', id)
-      
-      if (error) {
-        console.error('Etkinlik reddedilirken hata:', error)
-        return
-      }
-      
-      // UI'yi güncelle
-      setEvents(events.map(event => 
-        event.id === id ? { ...event, status: 'rejected' } : event
-      ))
-    } catch (error) {
-      console.error('Etkinlik reddedilirken genel hata:', error)
-    }
-  }
+export default async function EventsPage() {
+  let events: Event[]
+  let error: string | null = null
 
-  async function deactivateEvent(id: string) {
-    try {
-      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
-      const supabase = await getServiceSupabaseClient()
-      const { error } = await supabase.from('events').update({ status: 'inactive' }).eq('id', id)
-      
-      if (error) {
-        console.error('Etkinlik pasif yapılırken hata:', error)
-        return
-      }
-      
-      // UI'yi güncelle
-      setEvents(events.map(event => 
-        event.id === id ? { ...event, status: 'inactive' } : event
-      ))
-    } catch (error) {
-      console.error('Etkinlik pasif yapılırken genel hata:', error)
-    }
-  }
-
-  if (loading) {
-    return (
-      <main>
-        <h1>Etkinlik Yönetimi</h1>
-        <div className="flex items-center justify-center py-8">
-          <div className="text-lg">Etkinlikler yükleniyor...</div>
-        </div>
-      </main>
-    )
+  try {
+    events = await getEvents()
+  } catch (err) {
+    error = err instanceof Error ? err.message : 'Bilinmeyen hata'
+    events = []
   }
 
   if (error) {
@@ -257,32 +180,10 @@ export default function EventsPage() {
                     </div>
                   </td>
                   <td>
-                    <div className="flex gap-2">
-                      {event.status === 'pending' && (
-                        <>
-                          <button 
-                            onClick={() => approveEvent(event.id)}
-                            className="btn btn-success btn-sm"
-                          >
-                            Onayla
-                          </button>
-                          <button 
-                            onClick={() => rejectEvent(event.id)}
-                            className="btn btn-danger btn-sm"
-                          >
-                            Reddet
-                          </button>
-                        </>
-                      )}
-                      
-                      {event.status === 'approved' && (
-                        <button 
-                          onClick={() => deactivateEvent(event.id)}
-                          className="btn btn-warning btn-sm"
-                        >
-                          Pasif Yap
-                        </button>
-                      )}
+                    <div className="text-sm text-muted">
+                      {event.status === 'pending' ? 'Bekliyor' : 
+                       event.status === 'approved' ? 'Onaylandı' : 
+                       event.status === 'rejected' ? 'Reddedildi' : 'Pasif'}
                     </div>
                   </td>
                 </tr>

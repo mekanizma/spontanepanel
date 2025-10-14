@@ -1,6 +1,4 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
 interface User {
   id: string
@@ -16,162 +14,85 @@ interface User {
   event_count: number
 }
 
-export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    async function loadUsers() {
-      console.log('👥 Users yükleniyor...')
-      
-      // Service Role Key kullan
-      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
-      const supabase = await getServiceSupabaseClient()
-      
-      try {
-        console.log('👥 Users tablosundan veri çekiliyor...')
-        
-        // Önce basit bir test sorgusu yapalım
-        console.log('🔍 Test sorgusu: Tüm kolonları çekiyorum...')
-        const { data: testUsers, error: testError } = await supabase
-          .from('users')
-          .select('*')
-          .limit(5)
-        
-        console.log('🔍 Test sonucu:', { count: testUsers?.length, error: testError, sample: testUsers?.[0] })
-        
-        const { data: users, error } = await supabase
-          .from('users')
-          .select(`
-            id,
-            username,
-            email,
-            full_name,
-            join_date,
-            is_premium,
-            is_verified,
-            status,
-            premium_expires_at,
-            profile_image_url
-          `)
-          .order('join_date', { ascending: false })
-
-        console.log('👥 Users sonucu:', { count: users?.length, error })
-
-        if (error) {
-          console.error('Kullanıcılar yüklenirken hata:', error)
-          setError('Kullanıcılar yüklenirken hata oluştu')
-          setLoading(false)
-          return
-        }
-
-        // Her kullanıcı için etkinlik sayısını al
-        const usersWithEventCounts = await Promise.all(
-          (users || []).map(async (user) => {
-            try {
-              const { count: eventCount } = await supabase
-                .from('events')
-                .select('*', { count: 'exact', head: true })
-                .eq('creator_id', user.id)
-              
-              return {
-                ...user,
-                event_count: eventCount || 0
-              }
-            } catch (error) {
-              console.error(`Kullanıcı ${user.id} için etkinlik sayısı alınırken hata:`, error)
-              return {
-                ...user,
-                event_count: 0
-              }
-            }
-          })
-        )
-
-        setUsers(usersWithEventCounts)
-        setLoading(false)
-      } catch (error) {
-        console.error('Kullanıcılar yüklenirken genel hata:', error)
-        setError('Kullanıcılar yüklenirken hata oluştu')
-        setLoading(false)
-      }
-    }
-
-    loadUsers()
-  }, [])
-
-  async function suspendUser(userId: string) {
-    try {
-      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
-      const supabase = await getServiceSupabaseClient()
-      const { error } = await supabase.from('users').update({ status: 'suspended' }).eq('id', userId)
-      
-      if (error) {
-        console.error('Kullanıcı askıya alınırken hata:', error)
-        return
-      }
-      
-      // UI'yi güncelle
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, status: 'suspended' } : user
-      ))
-    } catch (error) {
-      console.error('Kullanıcı askıya alınırken genel hata:', error)
-    }
-  }
-
-  async function unsuspendUser(userId: string) {
-    try {
-      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
-      const supabase = await getServiceSupabaseClient()
-      const { error } = await supabase.from('users').update({ status: 'active' }).eq('id', userId)
-      
-      if (error) {
-        console.error('Kullanıcı askıdan çıkarılırken hata:', error)
-        return
-      }
-      
-      // UI'yi güncelle
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, status: 'active' } : user
-      ))
-    } catch (error) {
-      console.error('Kullanıcı askıdan çıkarılırken genel hata:', error)
-    }
-  }
-
-  async function deleteUser(userId: string) {
-    if (!confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz?')) {
-      return
-    }
+async function getUsers(): Promise<User[]> {
+  console.log('👥 Users yükleniyor...')
+  
+  const supabase = createServiceSupabaseClient()
+  
+  try {
+    console.log('👥 Users tablosundan veri çekiliyor...')
     
-    try {
-      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
-      const supabase = await getServiceSupabaseClient()
-      const { error } = await supabase.from('users').delete().eq('id', userId)
-      
-      if (error) {
-        console.error('Kullanıcı silinirken hata:', error)
-        return
-      }
-      
-      // UI'den kaldır
-      setUsers(users.filter(user => user.id !== userId))
-    } catch (error) {
-      console.error('Kullanıcı silinirken genel hata:', error)
-    }
-  }
+    // Önce basit bir test sorgusu yapalım
+    console.log('🔍 Test sorgusu: Tüm kolonları çekiyorum...')
+    const { data: testUsers, error: testError } = await supabase
+      .from('users')
+      .select('*')
+      .limit(5)
+    
+    console.log('🔍 Test sonucu:', { count: testUsers?.length, error: testError, sample: testUsers?.[0] })
+    
+    const { data: users, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        username,
+        email,
+        full_name,
+        join_date,
+        is_premium,
+        is_verified,
+        status,
+        premium_expires_at,
+        profile_image_url
+      `)
+      .order('join_date', { ascending: false })
 
-  if (loading) {
-    return (
-      <main>
-        <h1>Kullanıcı Yönetimi</h1>
-        <div className="flex items-center justify-center py-8">
-          <div className="text-lg">Kullanıcılar yükleniyor...</div>
-        </div>
-      </main>
+    console.log('👥 Users sonucu:', { count: users?.length, error })
+
+    if (error) {
+      console.error('Kullanıcılar yüklenirken hata:', error)
+      throw new Error('Kullanıcılar yüklenirken hata oluştu')
+    }
+
+    // Her kullanıcı için etkinlik sayısını al
+    const usersWithEventCounts = await Promise.all(
+      (users || []).map(async (user) => {
+        try {
+          const { count: eventCount } = await supabase
+            .from('events')
+            .select('*', { count: 'exact', head: true })
+            .eq('creator_id', user.id)
+          
+          return {
+            ...user,
+            event_count: eventCount || 0
+          }
+        } catch (error) {
+          console.error(`Kullanıcı ${user.id} için etkinlik sayısı alınırken hata:`, error)
+          return {
+            ...user,
+            event_count: 0
+          }
+        }
+      })
     )
+
+    return usersWithEventCounts
+  } catch (error) {
+    console.error('Kullanıcılar yüklenirken genel hata:', error)
+    throw new Error('Kullanıcılar yüklenirken hata oluştu')
+  }
+}
+
+export default async function UsersPage() {
+  let users: User[]
+  let error: string | null = null
+
+  try {
+    users = await getUsers()
+  } catch (err) {
+    error = err instanceof Error ? err.message : 'Bilinmeyen hata'
+    users = []
   }
 
   if (error) {
@@ -257,29 +178,8 @@ export default function UsersPage() {
                     </div>
                   </td>
                   <td>
-                    <div className="flex gap-2">
-                      {user.status === 'suspended' ? (
-                        <button 
-                          onClick={() => unsuspendUser(user.id)}
-                          className="btn btn-success btn-sm"
-                        >
-                          Askıdan Çıkar
-                        </button>
-                      ) : (
-                        <button 
-                          onClick={() => suspendUser(user.id)}
-                          className="btn btn-warning btn-sm"
-                        >
-                          Askıya Al
-                        </button>
-                      )}
-                      
-                      <button 
-                        onClick={() => deleteUser(user.id)}
-                        className="btn btn-danger btn-sm"
-                      >
-                        Sil
-                      </button>
+                    <div className="text-sm text-muted">
+                      {user.status === 'suspended' ? 'Askıda' : 'Aktif'}
                     </div>
                   </td>
                 </tr>

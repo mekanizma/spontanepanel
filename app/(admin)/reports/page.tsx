@@ -1,6 +1,4 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
 interface Report {
   id: string
@@ -18,125 +16,56 @@ interface Report {
   }[] | null
 }
 
-export default function ReportsPage() {
-  const [reports, setReports] = useState<Report[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+async function getReports(): Promise<Report[]> {
+  console.log('⚠️ Reports yükleniyor...')
+  
+  const supabase = createServiceSupabaseClient()
 
-  useEffect(() => {
-    async function loadReports() {
-      console.log('⚠️ Reports yükleniyor...')
-      
-      // Service Role Key kullan
-      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
-      const supabase = await getServiceSupabaseClient()
+  try {
+    console.log('⚠️ Reports tablosundan veri çekiliyor...')
+    // Reports tablosu yoksa boş array döndür
+    const { data: reports, error } = await supabase
+      .from('reports')
+      .select(`
+        id,
+        reporter_id,
+        reported_user_id,
+        reported_event_id,
+        reason,
+        description,
+        status,
+        created_at,
+        users!reporter_id (
+          username,
+          full_name,
+          profile_image_url
+        )
+      `)
+      .order('created_at', { ascending: false })
 
-      try {
-        console.log('⚠️ Reports tablosundan veri çekiliyor...')
-        // Reports tablosu yoksa boş array döndür
-        const { data: reports, error } = await supabase
-          .from('reports')
-          .select(`
-            id,
-            reporter_id,
-            reported_user_id,
-            reported_event_id,
-            reason,
-            description,
-            status,
-            created_at,
-            users!reporter_id (
-              username,
-              full_name,
-              profile_image_url
-            )
-          `)
-          .order('created_at', { ascending: false })
+    console.log('⚠️ Reports sonucu:', { count: reports?.length, error })
 
-        console.log('⚠️ Reports sonucu:', { count: reports?.length, error })
-
-        if (error) {
-          console.error('Şikayetler yüklenirken hata:', error)
-          setError('Şikayetler yüklenirken hata oluştu')
-          setLoading(false)
-          return
-        }
-
-        setReports(reports || [])
-        setLoading(false)
-      } catch (error) {
-        console.error('Şikayetler yüklenirken genel hata:', error)
-        setError('Şikayetler yüklenirken hata oluştu')
-        setLoading(false)
-      }
+    if (error) {
+      console.error('Şikayetler yüklenirken hata:', error)
+      throw new Error('Şikayetler yüklenirken hata oluştu')
     }
 
-    loadReports()
-  }, [])
-
-  async function resolveReport(reportId: string) {
-    try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      const { error } = await supabase
-        .from('reports')
-        .update({ status: 'resolved' })
-        .eq('id', reportId)
-      
-      if (error) {
-        console.error('Şikayet çözüldü olarak işaretlenirken hata:', error)
-        return
-      }
-      
-      // UI'yi güncelle
-      setReports(reports.map(report => 
-        report.id === reportId ? { ...report, status: 'resolved' } : report
-      ))
-    } catch (error) {
-      console.error('Şikayet çözüldü olarak işaretlenirken genel hata:', error)
-    }
+    return reports || []
+  } catch (error) {
+    console.error('Şikayetler yüklenirken genel hata:', error)
+    throw new Error('Şikayetler yüklenirken hata oluştu')
   }
+}
 
-  async function deleteReport(reportId: string) {
-    if (!confirm('Bu şikayeti silmek istediğinizden emin misiniz?')) {
-      return
-    }
-    
-    try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
-      const { error } = await supabase
-        .from('reports')
-        .delete()
-        .eq('id', reportId)
-      
-      if (error) {
-        console.error('Şikayet silinirken hata:', error)
-        return
-      }
-      
-      // UI'den kaldır
-      setReports(reports.filter(report => report.id !== reportId))
-    } catch (error) {
-      console.error('Şikayet silinirken genel hata:', error)
-    }
-  }
+export default async function ReportsPage() {
+  let reports: Report[]
+  let error: string | null = null
 
-  if (loading) {
-    return (
-      <main>
-        <h1>Şikayet Yönetimi</h1>
-        <div className="flex items-center justify-center py-8">
-          <div className="text-lg">Şikayetler yükleniyor...</div>
-        </div>
-      </main>
-    )
+  try {
+    reports = await getReports()
+  } catch (err) {
+    error = err instanceof Error ? err.message : 'Bilinmeyen hata'
+    reports = []
   }
 
   if (error) {
@@ -222,22 +151,9 @@ export default function ReportsPage() {
                     </div>
                   </td>
                   <td>
-                    <div className="flex gap-2">
-                      {report.status === 'pending' && (
-                        <button 
-                          onClick={() => resolveReport(report.id)}
-                          className="btn btn-success btn-sm"
-                        >
-                          Çözüldü İşaretle
-                        </button>
-                      )}
-                      
-                      <button 
-                        onClick={() => deleteReport(report.id)}
-                        className="btn btn-danger btn-sm"
-                      >
-                        Sil
-                      </button>
+                    <div className="text-sm text-muted">
+                      {report.status === 'pending' ? 'Bekliyor' : 
+                       report.status === 'resolved' ? 'Çözüldü' : 'Reddedildi'}
                     </div>
                   </td>
                 </tr>
