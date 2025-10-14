@@ -87,19 +87,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next|favicon.ico|api|assets|_static|_vercel).*)',
-    '/dashboard',
-    '/users',
-    '/events',
-    '/reports',
-    '/notifications',
-    '/premium',
-    '/verification',
-    '/badges',
-    '/stories',
-    '/settings'
-  ],
+  matcher: [], // Middleware'i geçici olarak devre dışı bırak
 }
 
 
