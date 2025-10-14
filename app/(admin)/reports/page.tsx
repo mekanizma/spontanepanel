@@ -1,5 +1,7 @@
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
+export const dynamic = 'force-dynamic'
+
 interface Report {
   id: string
   reporter_id: string

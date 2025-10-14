@@ -1,6 +1,8 @@
 // import { getServerSupabase } from '@/lib/supabaseServer'
 // import { redirect } from 'next/navigation'
 
+export const dynamic = 'force-dynamic'
+
 export default async function SettingsPage() {
   // Geçici olarak auth kontrolünü devre dışı bırak
   // const supabase = await getServerSupabase()

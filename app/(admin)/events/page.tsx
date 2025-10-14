@@ -1,5 +1,7 @@
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
+export const dynamic = 'force-dynamic'
+
 interface Event {
   id: string
   title: string

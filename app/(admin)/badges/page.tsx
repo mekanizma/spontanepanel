@@ -25,8 +25,8 @@ interface UserBadge {
   user_id: string
   badge_id: string
   assigned_at: string
-  badges: Badge
-  users: User
+  badges: Badge[] | null
+  users: User[] | null
 }
 
 async function getBadges(): Promise<Badge[]> {
@@ -115,7 +115,8 @@ async function getUserBadges(): Promise<UserBadge[]> {
           name,
           description,
           icon_url,
-          color
+          color,
+          created_at
         ),
         users!user_id (
           id,
@@ -385,31 +386,31 @@ export default function BadgesPage() {
                   <td>
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {userBadge.users?.profile_image_url ? (
+                        {userBadge.users?.[0]?.profile_image_url ? (
                           <img 
-                            src={userBadge.users.profile_image_url} 
-                            alt={userBadge.users.username}
+                            src={userBadge.users[0].profile_image_url} 
+                            alt={userBadge.users[0].username}
                             className="w-full h-full object-cover"
                           />
                         ) : (
                           <span className="text-sm font-semibold">
-                            {userBadge.users?.username?.charAt(0).toUpperCase() || 'U'}
+                            {userBadge.users?.[0]?.username?.charAt(0).toUpperCase() || 'U'}
                           </span>
                         )}
                       </div>
                       <div>
-                        <div className="font-medium">{userBadge.users?.full_name || userBadge.users?.username}</div>
-                        <div className="text-sm text-muted">@{userBadge.users?.username}</div>
+                        <div className="font-medium">{userBadge.users?.[0]?.full_name || userBadge.users?.[0]?.username}</div>
+                        <div className="text-sm text-muted">@{userBadge.users?.[0]?.username}</div>
                       </div>
                     </div>
                   </td>
                   <td>
                     <div className="flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-                        {userBadge.badges?.icon_url ? (
+                        {userBadge.badges?.[0]?.icon_url ? (
                           <img 
-                            src={userBadge.badges.icon_url} 
-                            alt={userBadge.badges.name}
+                            src={userBadge.badges[0].icon_url} 
+                            alt={userBadge.badges[0].name}
                             className="w-full h-full object-cover"
                           />
                         ) : (
@@ -417,8 +418,8 @@ export default function BadgesPage() {
                         )}
                       </div>
                       <div>
-                        <div className="font-medium">{userBadge.badges?.name}</div>
-                        <div className="text-sm text-muted">{userBadge.badges?.description}</div>
+                        <div className="font-medium">{userBadge.badges?.[0]?.name}</div>
+                        <div className="text-sm text-muted">{userBadge.badges?.[0]?.description}</div>
                       </div>
                     </div>
                   </td>
