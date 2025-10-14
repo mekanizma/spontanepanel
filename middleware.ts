@@ -2,9 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+  console.log('🚀🚀🚀 MIDDLEWARE ÇALIŞIYOR! Path:', req.nextUrl.pathname)
   
-  console.log('🚀 Middleware başladı - Path:', req.nextUrl.pathname)
+  const res = NextResponse.next()
   
   // Supabase client oluştur
   const supabase = createServerClient(
@@ -87,7 +87,19 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next|favicon.ico|api|assets).*)'],
+  matcher: [
+    '/((?!_next|favicon.ico|api|assets|_static|_vercel).*)',
+    '/dashboard',
+    '/users',
+    '/events',
+    '/reports',
+    '/notifications',
+    '/premium',
+    '/verification',
+    '/badges',
+    '/stories',
+    '/settings'
+  ],
 }
 
 
