@@ -1,6 +1,5 @@
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useEffect, useState } from 'react'
 
 interface Stats {
@@ -27,7 +26,13 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadStats() {
       console.log('📊 Dashboard stats yükleniyor...')
-      const supabase = createClientComponentClient()
+      
+      // Doğrudan Supabase client oluştur
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        'https://fbiibwhupuxizqacvhdt.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+      )
 
       try {
         console.log('📊 Users tablosundan veri çekiliyor...')

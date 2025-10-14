@@ -1,6 +1,5 @@
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useEffect, useState } from 'react'
 
 interface Event {
@@ -29,7 +28,13 @@ export default function EventsPage() {
   useEffect(() => {
     async function loadEvents() {
       console.log('🎉 Events yükleniyor...')
-      const supabase = createClientComponentClient()
+      
+      // Doğrudan Supabase client oluştur
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        'https://fbiibwhupuxizqacvhdt.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+      )
 
       try {
         console.log('🎉 Events tablosundan veri çekiliyor...')
@@ -77,7 +82,11 @@ export default function EventsPage() {
 
   async function approveEvent(id: string) {
     try {
-      const supabase = createClientComponentClient()
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        'https://fbiibwhupuxizqacvhdt.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+      )
       const { error } = await supabase.from('events').update({ status: 'approved' }).eq('id', id)
       
       if (error) {
@@ -96,7 +105,11 @@ export default function EventsPage() {
 
   async function rejectEvent(id: string) {
     try {
-      const supabase = createClientComponentClient()
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        'https://fbiibwhupuxizqacvhdt.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+      )
       const { error } = await supabase.from('events').update({ status: 'rejected' }).eq('id', id)
       
       if (error) {
@@ -115,7 +128,11 @@ export default function EventsPage() {
 
   async function deactivateEvent(id: string) {
     try {
-      const supabase = createClientComponentClient()
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        'https://fbiibwhupuxizqacvhdt.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZiaWlid2h1cHV4aXpxYWN2aGR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5NzQ4NzQsImV4cCI6MjA1MDU1MDg3NH0.8QZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZqZq'
+      )
       const { error } = await supabase.from('events').update({ status: 'inactive' }).eq('id', id)
       
       if (error) {
