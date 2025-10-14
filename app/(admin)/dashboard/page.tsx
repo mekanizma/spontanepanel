@@ -19,7 +19,24 @@ async function getStats() {
     .select('*', { count: 'exact', head: true })
     .eq('status', 'pending')
 
-  return { totalUsers: totalUsers || 0, totalEvents: totalEvents || 0, pendingEvents: pendingEvents || 0, pendingReports: pendingReports || 0 }
+  const { count: premiumUsers } = await supabase
+    .from('users')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_premium', true)
+
+  const { count: verifiedUsers } = await supabase
+    .from('users')
+    .select('*', { count: 'exact', head: true })
+    .eq('is_verified', true)
+
+  return { 
+    totalUsers: totalUsers || 0, 
+    totalEvents: totalEvents || 0, 
+    pendingEvents: pendingEvents || 0, 
+    pendingReports: pendingReports || 0,
+    premiumUsers: premiumUsers || 0,
+    verifiedUsers: verifiedUsers || 0
+  }
 }
 
 export default async function DashboardPage() {
@@ -29,24 +46,73 @@ export default async function DashboardPage() {
     redirect('/login?redirect=/dashboard')
   }
   const stats = await getStats()
+  
   return (
     <main>
       <h1>Dashboard</h1>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginTop: 16 }}>
-        <Stat title="Toplam Kullanıcı" value={stats.totalUsers} />
-        <Stat title="Toplam Etkinlik" value={stats.totalEvents} />
-        <Stat title="Bekleyen Etkinlik" value={stats.pendingEvents} />
-        <Stat title="Bekleyen Şikayet" value={stats.pendingReports} />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+        <StatCard 
+          title="Toplam Kullanıcı" 
+          value={stats.totalUsers} 
+          icon="👥"
+          color="blue"
+        />
+        <StatCard 
+          title="Toplam Etkinlik" 
+          value={stats.totalEvents} 
+          icon="🎉"
+          color="green"
+        />
+        <StatCard 
+          title="Bekleyen Etkinlik" 
+          value={stats.pendingEvents} 
+          icon="⏳"
+          color="yellow"
+        />
+        <StatCard 
+          title="Bekleyen Şikayet" 
+          value={stats.pendingReports} 
+          icon="⚠️"
+          color="red"
+        />
+        <StatCard 
+          title="Premium Kullanıcı" 
+          value={stats.premiumUsers} 
+          icon="⭐"
+          color="purple"
+        />
+        <StatCard 
+          title="Doğrulanmış Kullanıcı" 
+          value={stats.verifiedUsers} 
+          icon="✅"
+          color="green"
+        />
       </div>
     </main>
   )
 }
 
-function Stat({ title, value }: { title: string; value: number }) {
+function StatCard({ title, value, icon, color }: { 
+  title: string; 
+  value: number; 
+  icon: string;
+  color: 'blue' | 'green' | 'yellow' | 'red' | 'purple';
+}) {
+  const colorClasses = {
+    blue: 'border-blue-200 bg-blue-50',
+    green: 'border-green-200 bg-green-50',
+    yellow: 'border-yellow-200 bg-yellow-50',
+    red: 'border-red-200 bg-red-50',
+    purple: 'border-purple-200 bg-purple-50'
+  }
+
   return (
-    <div style={{ padding: 16, border: '1px solid #eee', borderRadius: 8 }}>
-      <div style={{ color: '#666', fontSize: 12 }}>{title}</div>
-      <div style={{ fontSize: 24, fontWeight: 600 }}>{value}</div>
+    <div className={`card border-2 ${colorClasses[color]}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-2xl">{icon}</span>
+        <span className="text-3xl font-bold">{value.toLocaleString()}</span>
+      </div>
+      <div className="text-sm text-muted font-medium">{title}</div>
     </div>
   )
 }

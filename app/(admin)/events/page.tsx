@@ -1,19 +1,41 @@
 import { getServerSupabase } from '@/lib/supabaseServer'
+import { redirect } from 'next/navigation'
 
-async function getPending() {
+async function getAllEvents() {
   const supabase = await getServerSupabase()
 
-  const { data } = await supabase
+  const { data: events } = await supabase
     .from('events')
-    .select('id, title, start_time, creator_id, status')
-    .eq('status', 'pending')
-    .order('start_time', { ascending: true })
+    .select(`
+      id,
+      title,
+      description,
+      start_time,
+      end_time,
+      location,
+      image_url,
+      creator_id,
+      status,
+      created_at,
+      users!creator_id (
+        username,
+        full_name,
+        profile_image_url
+      )
+    `)
+    .order('created_at', { ascending: false })
 
-  return data || []
+  return events || []
 }
 
 export default async function EventsPage() {
-  const events = await getPending()
+  const supabase = await getServerSupabase()
+  const { data } = await supabase.auth.getUser()
+  if (!data.user) {
+    redirect('/login?redirect=/events')
+  }
+  
+  const events = await getAllEvents()
 
   async function approve(formData: FormData) {
     'use server'
@@ -28,38 +50,146 @@ export default async function EventsPage() {
     const supabase = await getServerSupabase()
     await supabase.from('events').update({ status: 'rejected' }).eq('id', id)
   }
+
+  async function deactivate(formData: FormData) {
+    'use server'
+    const id = String(formData.get('id'))
+    const supabase = await getServerSupabase()
+    await supabase.from('events').update({ status: 'inactive' }).eq('id', id)
+  }
+
   return (
     <main>
       <h1>Etkinlik Yönetimi</h1>
-      <table style={{ width: '100%', marginTop: 16, borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th align="left">Başlık</th>
-            <th>Başlangıç</th>
-            <th>Durum</th>
-            <th>Aksiyon</th>
-          </tr>
-        </thead>
-        <tbody>
-          {events.map((e: any) => (
-            <tr key={e.id} style={{ borderTop: '1px solid #eee' }}>
-              <td>{e.title}</td>
-              <td align="center">{new Date(e.start_time).toLocaleString('tr-TR')}</td>
-              <td align="center">{e.status}</td>
-              <td align="center" style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                <form action={approve}>
-                  <input type="hidden" name="id" value={e.id} />
-                  <button type="submit">Onayla</button>
-                </form>
-                <form action={reject}>
-                  <input type="hidden" name="id" value={e.id} />
-                  <button type="submit">Reddet</button>
-                </form>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      
+      <div className="card mt-6">
+        <div className="overflow-x-auto">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Etkinlik</th>
+                <th>Oluşturan</th>
+                <th>Tarih</th>
+                <th>Konum</th>
+                <th>Durum</th>
+                <th>Aksiyonlar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map((event: any) => (
+                <tr key={event.id}>
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden">
+                        {event.image_url ? (
+                          <img 
+                            src={event.image_url} 
+                            alt={event.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-2xl">🎉</span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-semibold text-lg">{event.title}</div>
+                        <div className="text-sm text-muted line-clamp-2">
+                          {event.description}
+                        </div>
+                        <div className="text-xs text-muted">ID: {event.id}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                        {event.users?.profile_image_url ? (
+                          <img 
+                            src={event.users.profile_image_url} 
+                            alt={event.users.username}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold">
+                            {event.users?.username?.charAt(0).toUpperCase() || 'U'}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium">{event.users?.full_name || event.users?.username}</div>
+                        <div className="text-sm text-muted">@{event.users?.username}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="text-sm">
+                      <div className="font-medium">
+                        {new Date(event.start_time).toLocaleDateString('tr-TR')}
+                      </div>
+                      <div className="text-muted">
+                        {new Date(event.start_time).toLocaleTimeString('tr-TR', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="text-sm">
+                      {event.location || 'Belirtilmemiş'}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex flex-col gap-1">
+                      {event.status === 'approved' && (
+                        <span className="badge badge-success">Onaylandı</span>
+                      )}
+                      {event.status === 'pending' && (
+                        <span className="badge badge-warning">Bekliyor</span>
+                      )}
+                      {event.status === 'rejected' && (
+                        <span className="badge badge-error">Reddedildi</span>
+                      )}
+                      {event.status === 'inactive' && (
+                        <span className="badge badge-error">Pasif</span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex gap-2">
+                      {event.status === 'pending' && (
+                        <>
+                          <form action={approve}>
+                            <input type="hidden" name="id" value={event.id} />
+                            <button type="submit" className="btn btn-success btn-sm">
+                              Onayla
+                            </button>
+                          </form>
+                          <form action={reject}>
+                            <input type="hidden" name="id" value={event.id} />
+                            <button type="submit" className="btn btn-danger btn-sm">
+                              Reddet
+                            </button>
+                          </form>
+                        </>
+                      )}
+                      
+                      {event.status === 'approved' && (
+                        <form action={deactivate}>
+                          <input type="hidden" name="id" value={event.id} />
+                          <button type="submit" className="btn btn-warning btn-sm">
+                            Pasif Yap
+                          </button>
+                        </form>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </main>
   )
 }

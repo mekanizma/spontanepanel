@@ -1,71 +1,184 @@
 import { getServerSupabase } from '@/lib/supabaseServer'
+import { redirect } from 'next/navigation'
 
 async function getUsers() {
   const supabase = await getServerSupabase()
-
-  const { data } = await supabase
+  
+  const { data: users } = await supabase
     .from('users')
-    .select('id, full_name, email, username, status, is_admin, is_premium, is_verified, created_at')
+    .select(`
+      id,
+      username,
+      email,
+      full_name,
+      created_at,
+      is_premium,
+      is_verified,
+      is_suspended,
+      premium_expires_at,
+      profile_image_url
+    `)
     .order('created_at', { ascending: false })
 
-  return data || []
+  // Her kullanıcı için etkinlik sayısını al
+  const usersWithEventCounts = await Promise.all(
+    (users || []).map(async (user) => {
+      const { count: eventCount } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .eq('creator_id', user.id)
+      
+      return {
+        ...user,
+        event_count: eventCount || 0
+      }
+    })
+  )
+
+  return usersWithEventCounts
 }
 
 export default async function UsersPage() {
+  const supabase = await getServerSupabase()
+  const { data } = await supabase.auth.getUser()
+  if (!data.user) {
+    redirect('/login?redirect=/users')
+  }
+  
   const users = await getUsers()
-  async function suspend(formData: FormData) {
+
+  async function suspendUser(formData: FormData) {
     'use server'
-    const id = String(formData.get('id'))
+    const userId = String(formData.get('userId'))
     const supabase = await getServerSupabase()
-    await supabase.from('users').update({ status: 'suspended' }).eq('id', id)
+    await supabase.from('users').update({ is_suspended: true }).eq('id', userId)
   }
-  async function activate(formData: FormData) {
+
+  async function unsuspendUser(formData: FormData) {
     'use server'
-    const id = String(formData.get('id'))
+    const userId = String(formData.get('userId'))
     const supabase = await getServerSupabase()
-    await supabase.from('users').update({ status: 'active' }).eq('id', id)
+    await supabase.from('users').update({ is_suspended: false }).eq('id', userId)
   }
+
+  async function deleteUser(formData: FormData) {
+    'use server'
+    const userId = String(formData.get('userId'))
+    const supabase = await getServerSupabase()
+    await supabase.from('users').delete().eq('id', userId)
+  }
+
   return (
     <main>
       <h1>Kullanıcı Yönetimi</h1>
-      <table style={{ width: '100%', marginTop: 16, borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th align="left">Ad</th>
-            <th align="left">E-posta</th>
-            <th>Durum</th>
-            <th>Premium</th>
-            <th>Doğrulandı</th>
-            <th>Aksiyon</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u: any) => (
-            <tr key={u.id} style={{ borderTop: '1px solid #eee' }}>
-              <td>{u.full_name || u.username || '-'}</td>
-              <td>{u.email}</td>
-              <td align="center">{u.status}</td>
-              <td align="center">{u.is_premium ? 'Evet' : 'Hayır'}</td>
-              <td align="center">{u.is_verified ? 'Evet' : 'Hayır'}</td>
-              <td align="center" style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                {u.status !== 'suspended' ? (
-                  <form action={suspend}>
-                    <input type="hidden" name="id" value={u.id} />
-                    <button type="submit">Askıya Al</button>
-                  </form>
-                ) : (
-                  <form action={activate}>
-                    <input type="hidden" name="id" value={u.id} />
-                    <button type="submit">Aktifleştir</button>
-                  </form>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      
+      <div className="card mt-6">
+        <div className="overflow-x-auto">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Kullanıcı</th>
+                <th>E-posta</th>
+                <th>Kayıt Tarihi</th>
+                <th>Etkinlik Sayısı</th>
+                <th>Durum</th>
+                <th>Aksiyonlar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id}>
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                        {user.profile_image_url ? (
+                          <img 
+                            src={user.profile_image_url} 
+                            alt={user.username}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-lg font-semibold">
+                            {user.username?.charAt(0).toUpperCase() || 'U'}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-semibold">{user.full_name || user.username}</div>
+                        <div className="text-sm text-muted">@{user.username}</div>
+                        <div className="text-xs text-muted">ID: {user.id}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="text-sm">{user.email}</div>
+                  </td>
+                  <td>
+                    <div className="text-sm">
+                      {new Date(user.created_at).toLocaleDateString('tr-TR')}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="text-center">
+                      <span className="badge badge-info">{user.event_count}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex flex-col gap-1">
+                      {user.is_premium && (
+                        <span className="badge badge-success">Premium</span>
+                      )}
+                      {user.is_verified && (
+                        <span className="badge badge-info">Doğrulanmış</span>
+                      )}
+                      {user.is_suspended && (
+                        <span className="badge badge-error">Askıda</span>
+                      )}
+                      {!user.is_premium && !user.is_verified && !user.is_suspended && (
+                        <span className="badge badge-warning">Normal</span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex gap-2">
+                      {user.is_suspended ? (
+                        <form action={unsuspendUser}>
+                          <input type="hidden" name="userId" value={user.id} />
+                          <button type="submit" className="btn btn-success btn-sm">
+                            Askıdan Çıkar
+                          </button>
+                        </form>
+                      ) : (
+                        <form action={suspendUser}>
+                          <input type="hidden" name="userId" value={user.id} />
+                          <button type="submit" className="btn btn-warning btn-sm">
+                            Askıya Al
+                          </button>
+                        </form>
+                      )}
+                      
+                      <form action={deleteUser}>
+                        <input type="hidden" name="userId" value={user.id} />
+                        <button 
+                          type="submit" 
+                          className="btn btn-danger btn-sm"
+                          onClick={(e) => {
+                            if (!confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz?')) {
+                              e.preventDefault()
+                            }
+                          }}
+                        >
+                          Sil
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </main>
   )
 }
-
-
