@@ -7,7 +7,7 @@ interface User {
   username: string
   email: string
   full_name: string
-  join_date: string
+  created_at: string
   is_premium: boolean
   is_verified: boolean
   status: string
