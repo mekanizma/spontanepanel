@@ -1,6 +1,3 @@
-'use client'
-
-import React, { useState, useEffect } from 'react'
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
 interface PremiumUser {
@@ -50,61 +47,15 @@ async function getPremiumUsers(): Promise<PremiumUser[]> {
   }
 }
 
-export default function PremiumPage() {
-  const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+export default async function PremiumPage() {
+  let premiumUsers: PremiumUser[]
+  let error: string | null = null
 
-  useEffect(() => {
-    async function loadPremiumUsers() {
-      try {
-        const premiumUsersData = await getPremiumUsers()
-        setPremiumUsers(premiumUsersData)
-        setLoading(false)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
-        setLoading(false)
-      }
-    }
-    loadPremiumUsers()
-  }, [])
-
-  async function revokePremium(userId: string) {
-    if (!confirm('Bu kullanıcının premium üyeliğini iptal etmek istediğinizden emin misiniz?')) {
-      return
-    }
-    
-    try {
-      const supabase = createServiceSupabaseClient()
-      const { error } = await supabase
-        .from('users')
-        .update({ 
-          is_premium: false,
-          premium_expires_at: null
-        })
-        .eq('id', userId)
-      
-      if (error) {
-        console.error('Premium üyelik iptal edilirken hata:', error)
-        return
-      }
-      
-      // UI'den kaldır
-      setPremiumUsers(premiumUsers.filter(user => user.id !== userId))
-    } catch (error) {
-      console.error('Premium üyelik iptal edilirken genel hata:', error)
-    }
-  }
-
-  if (loading) {
-    return (
-      <main>
-        <h1>Premium Üye Yönetimi</h1>
-        <div className="flex items-center justify-center py-8">
-          <div className="text-lg">Premium kullanıcılar yükleniyor...</div>
-        </div>
-      </main>
-    )
+  try {
+    premiumUsers = await getPremiumUsers()
+  } catch (err) {
+    error = err instanceof Error ? err.message : 'Bilinmeyen hata'
+    premiumUsers = []
   }
 
   if (error) {
@@ -179,12 +130,9 @@ export default function PremiumPage() {
                     </div>
                   </td>
                   <td>
-                    <button 
-                      onClick={() => revokePremium(user.id)}
-                      className="btn btn-danger btn-sm"
-                    >
-                      Premium İptal Et
-                    </button>
+                    <div className="text-sm text-muted">
+                      Premium Aktif
+                    </div>
                   </td>
                 </tr>
               ))}

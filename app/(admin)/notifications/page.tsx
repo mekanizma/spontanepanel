@@ -1,6 +1,3 @@
-'use client'
-
-import React, { useState, useEffect } from 'react'
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
 interface Notification {
@@ -57,80 +54,15 @@ async function getNotifications(): Promise<Notification[]> {
   }
 }
 
-export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+export default async function NotificationsPage() {
+  let notifications: Notification[]
+  let error: string | null = null
 
-  useEffect(() => {
-    async function loadNotifications() {
-      try {
-        const notificationsData = await getNotifications()
-        setNotifications(notificationsData)
-        setLoading(false)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
-        setLoading(false)
-      }
-    }
-    loadNotifications()
-  }, [])
-
-  async function markAsRead(notificationId: string) {
-    try {
-      const supabase = createServiceSupabaseClient()
-      const { error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId)
-      
-      if (error) {
-        console.error('Bildirim okundu olarak işaretlenirken hata:', error)
-        return
-      }
-      
-      // UI'yi güncelle
-      setNotifications(notifications.map(notification => 
-        notification.id === notificationId ? { ...notification, is_read: true } : notification
-      ))
-    } catch (error) {
-      console.error('Bildirim okundu olarak işaretlenirken genel hata:', error)
-    }
-  }
-
-  async function deleteNotification(notificationId: string) {
-    if (!confirm('Bu bildirimi silmek istediğinizden emin misiniz?')) {
-      return
-    }
-    
-    try {
-      const supabase = createServiceSupabaseClient()
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', notificationId)
-      
-      if (error) {
-        console.error('Bildirim silinirken hata:', error)
-        return
-      }
-      
-      // UI'den kaldır
-      setNotifications(notifications.filter(notification => notification.id !== notificationId))
-    } catch (error) {
-      console.error('Bildirim silinirken genel hata:', error)
-    }
-  }
-
-  if (loading) {
-    return (
-      <main>
-        <h1>Bildirim Yönetimi</h1>
-        <div className="flex items-center justify-center py-8">
-          <div className="text-lg">Bildirimler yükleniyor...</div>
-        </div>
-      </main>
-    )
+  try {
+    notifications = await getNotifications()
+  } catch (err) {
+    error = err instanceof Error ? err.message : 'Bilinmeyen hata'
+    notifications = []
   }
 
   if (error) {
@@ -210,22 +142,8 @@ export default function NotificationsPage() {
                     </div>
                   </td>
                   <td>
-                    <div className="flex gap-2">
-                      {!notification.is_read && (
-                        <button 
-                          onClick={() => markAsRead(notification.id)}
-                          className="btn btn-success btn-sm"
-                        >
-                          Okundu İşaretle
-                        </button>
-                      )}
-                      
-                      <button 
-                        onClick={() => deleteNotification(notification.id)}
-                        className="btn btn-danger btn-sm"
-                      >
-                        Sil
-                      </button>
+                    <div className="text-sm text-muted">
+                      {notification.is_read ? 'Okundu' : 'Okunmadı'}
                     </div>
                   </td>
                 </tr>

@@ -1,6 +1,3 @@
-'use client'
-
-import React, { useState, useEffect } from 'react'
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
 interface VerificationRequest {
@@ -57,99 +54,15 @@ async function getVerificationRequests(): Promise<VerificationRequest[]> {
   }
 }
 
-export default function VerificationPage() {
-  const [requests, setRequests] = useState<VerificationRequest[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+export default async function VerificationPage() {
+  let requests: VerificationRequest[]
+  let error: string | null = null
 
-  useEffect(() => {
-    async function loadVerificationRequests() {
-      try {
-        const requestsData = await getVerificationRequests()
-        setRequests(requestsData)
-        setLoading(false)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
-        setLoading(false)
-      }
-    }
-    loadVerificationRequests()
-  }, [])
-
-  async function approveVerification(requestId: string) {
-    try {
-      const supabase = createServiceSupabaseClient()
-      
-      // Önce verification request'i onayla
-      const { error: verificationError } = await supabase
-        .from('user_verification')
-        .update({ 
-          is_verified: true,
-          verified_at: new Date().toISOString()
-        })
-        .eq('id', requestId)
-      
-      if (verificationError) {
-        console.error('Doğrulama onaylanırken hata:', verificationError)
-        return
-      }
-
-      // Kullanıcının is_verified durumunu güncelle
-      const request = requests.find(r => r.id === requestId)
-      if (request) {
-        const { error: userError } = await supabase
-          .from('users')
-          .update({ is_verified: true })
-          .eq('id', request.user_id)
-        
-        if (userError) {
-          console.error('Kullanıcı doğrulama durumu güncellenirken hata:', userError)
-          return
-        }
-      }
-      
-      // UI'yi güncelle
-      setRequests(requests.map(request => 
-        request.id === requestId ? { 
-          ...request, 
-          is_verified: true,
-          verified_at: new Date().toISOString()
-        } : request
-      ))
-    } catch (error) {
-      console.error('Doğrulama onaylanırken genel hata:', error)
-    }
-  }
-
-  async function rejectVerification(requestId: string) {
-    try {
-      const supabase = createServiceSupabaseClient()
-      const { error } = await supabase
-        .from('user_verification')
-        .delete()
-        .eq('id', requestId)
-      
-      if (error) {
-        console.error('Doğrulama isteği reddedilirken hata:', error)
-        return
-      }
-      
-      // UI'den kaldır
-      setRequests(requests.filter(request => request.id !== requestId))
-    } catch (error) {
-      console.error('Doğrulama isteği reddedilirken genel hata:', error)
-    }
-  }
-
-  if (loading) {
-    return (
-      <main>
-        <h1>Doğrulama Yönetimi</h1>
-        <div className="flex items-center justify-center py-8">
-          <div className="text-lg">Doğrulama istekleri yükleniyor...</div>
-        </div>
-      </main>
-    )
+  try {
+    requests = await getVerificationRequests()
+  } catch (err) {
+    error = err instanceof Error ? err.message : 'Bilinmeyen hata'
+    requests = []
   }
 
   if (error) {
@@ -234,23 +147,8 @@ export default function VerificationPage() {
                     </div>
                   </td>
                   <td>
-                    <div className="flex gap-2">
-                      {!request.is_verified && (
-                        <>
-                          <button 
-                            onClick={() => approveVerification(request.id)}
-                            className="btn btn-success btn-sm"
-                          >
-                            Onayla
-                          </button>
-                          <button 
-                            onClick={() => rejectVerification(request.id)}
-                            className="btn btn-danger btn-sm"
-                          >
-                            Reddet
-                          </button>
-                        </>
-                      )}
+                    <div className="text-sm text-muted">
+                      {request.is_verified ? 'Doğrulandı' : 'Bekliyor'}
                     </div>
                   </td>
                 </tr>
