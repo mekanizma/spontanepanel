@@ -4,28 +4,38 @@ import { redirect } from 'next/navigation'
 async function getAllEvents() {
   const supabase = await getServerSupabase()
 
-  const { data: events } = await supabase
-    .from('events')
-    .select(`
-      id,
-      title,
-      description,
-      start_time,
-      end_time,
-      location,
-      image_url,
-      creator_id,
-      status,
-      created_at,
-      users!creator_id (
-        username,
-        full_name,
-        profile_image_url
-      )
-    `)
-    .order('created_at', { ascending: false })
+  try {
+    const { data: events, error } = await supabase
+      .from('events')
+      .select(`
+        id,
+        title,
+        description,
+        start_time,
+        end_time,
+        location,
+        image_url,
+        creator_id,
+        status,
+        created_at,
+        users!creator_id (
+          username,
+          full_name,
+          profile_image_url
+        )
+      `)
+      .order('created_at', { ascending: false })
 
-  return events || []
+    if (error) {
+      console.error('Etkinlikler yüklenirken hata:', error)
+      return []
+    }
+
+    return events || []
+  } catch (error) {
+    console.error('Etkinlikler yüklenirken genel hata:', error)
+    return []
+  }
 }
 
 export default async function EventsPage() {
@@ -39,23 +49,47 @@ export default async function EventsPage() {
 
   async function approve(formData: FormData) {
     'use server'
-    const id = String(formData.get('id'))
-    const supabase = await getServerSupabase()
-    await supabase.from('events').update({ status: 'approved' }).eq('id', id)
+    try {
+      const id = String(formData.get('id'))
+      const supabase = await getServerSupabase()
+      const { error } = await supabase.from('events').update({ status: 'approved' }).eq('id', id)
+      
+      if (error) {
+        console.error('Etkinlik onaylanırken hata:', error)
+      }
+    } catch (error) {
+      console.error('Etkinlik onaylanırken genel hata:', error)
+    }
   }
 
   async function reject(formData: FormData) {
     'use server'
-    const id = String(formData.get('id'))
-    const supabase = await getServerSupabase()
-    await supabase.from('events').update({ status: 'rejected' }).eq('id', id)
+    try {
+      const id = String(formData.get('id'))
+      const supabase = await getServerSupabase()
+      const { error } = await supabase.from('events').update({ status: 'rejected' }).eq('id', id)
+      
+      if (error) {
+        console.error('Etkinlik reddedilirken hata:', error)
+      }
+    } catch (error) {
+      console.error('Etkinlik reddedilirken genel hata:', error)
+    }
   }
 
   async function deactivate(formData: FormData) {
     'use server'
-    const id = String(formData.get('id'))
-    const supabase = await getServerSupabase()
-    await supabase.from('events').update({ status: 'inactive' }).eq('id', id)
+    try {
+      const id = String(formData.get('id'))
+      const supabase = await getServerSupabase()
+      const { error } = await supabase.from('events').update({ status: 'inactive' }).eq('id', id)
+      
+      if (error) {
+        console.error('Etkinlik pasif yapılırken hata:', error)
+      }
+    } catch (error) {
+      console.error('Etkinlik pasif yapılırken genel hata:', error)
+    }
   }
 
   return (

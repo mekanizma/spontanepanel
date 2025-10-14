@@ -4,38 +4,57 @@ import { redirect } from 'next/navigation'
 async function getStats() {
   const supabase = await getServerSupabase()
 
-  const [{ count: totalUsers }, { count: totalEvents }] = await Promise.all([
-    supabase.from('users').select('*', { count: 'exact', head: true }),
-    supabase.from('events').select('*', { count: 'exact', head: true }),
-  ])
+  try {
+    const [{ count: totalUsers }, { count: totalEvents }] = await Promise.all([
+      supabase.from('users').select('*', { count: 'exact', head: true }),
+      supabase.from('events').select('*', { count: 'exact', head: true }),
+    ])
 
-  const { count: pendingEvents } = await supabase
-    .from('events')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'pending')
+    const { count: pendingEvents } = await supabase
+      .from('events')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending')
 
-  const { count: pendingReports } = await supabase
-    .from('reports')
-    .select('*', { count: 'exact', head: true })
-    .eq('status', 'pending')
+    // Reports tablosu yoksa 0 döndür
+    let pendingReports = 0
+    try {
+      const { count } = await supabase
+        .from('reports')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending')
+      pendingReports = count || 0
+    } catch (error) {
+      console.log('Reports tablosu bulunamadı, 0 olarak ayarlandı')
+    }
 
-  const { count: premiumUsers } = await supabase
-    .from('users')
-    .select('*', { count: 'exact', head: true })
-    .eq('is_premium', true)
+    const { count: premiumUsers } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_premium', true)
 
-  const { count: verifiedUsers } = await supabase
-    .from('users')
-    .select('*', { count: 'exact', head: true })
-    .eq('is_verified', true)
+    const { count: verifiedUsers } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_verified', true)
 
-  return { 
-    totalUsers: totalUsers || 0, 
-    totalEvents: totalEvents || 0, 
-    pendingEvents: pendingEvents || 0, 
-    pendingReports: pendingReports || 0,
-    premiumUsers: premiumUsers || 0,
-    verifiedUsers: verifiedUsers || 0
+    return { 
+      totalUsers: totalUsers || 0, 
+      totalEvents: totalEvents || 0, 
+      pendingEvents: pendingEvents || 0, 
+      pendingReports: pendingReports || 0,
+      premiumUsers: premiumUsers || 0,
+      verifiedUsers: verifiedUsers || 0
+    }
+  } catch (error) {
+    console.error('İstatistikler yüklenirken hata:', error)
+    return { 
+      totalUsers: 0, 
+      totalEvents: 0, 
+      pendingEvents: 0, 
+      pendingReports: 0,
+      premiumUsers: 0,
+      verifiedUsers: 0
+    }
   }
 }
 

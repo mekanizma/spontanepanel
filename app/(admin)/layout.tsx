@@ -1,13 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import styles from './layout.module.css'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const supabase = createClientComponentClient()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   const menuItems = [
     { href: '/dashboard', label: 'Dashboard', icon: '📊' },
@@ -46,6 +55,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </Link>
           ))}
         </nav>
+        <div className={styles.logoutSection}>
+          <button 
+            onClick={handleLogout}
+            className={styles.logoutButton}
+          >
+            🚪 Çıkış Yap
+          </button>
+        </div>
       </aside>
       
       <section className={styles.content}>

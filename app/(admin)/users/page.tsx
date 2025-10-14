@@ -4,38 +4,56 @@ import { redirect } from 'next/navigation'
 async function getUsers() {
   const supabase = await getServerSupabase()
   
-  const { data: users } = await supabase
-    .from('users')
-    .select(`
-      id,
-      username,
-      email,
-      full_name,
-      created_at,
-      is_premium,
-      is_verified,
-      is_suspended,
-      premium_expires_at,
-      profile_image_url
-    `)
-    .order('created_at', { ascending: false })
+  try {
+    const { data: users, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        username,
+        email,
+        full_name,
+        created_at,
+        is_premium,
+        is_verified,
+        is_suspended,
+        premium_expires_at,
+        profile_image_url
+      `)
+      .order('created_at', { ascending: false })
 
-  // Her kullanıcı için etkinlik sayısını al
-  const usersWithEventCounts = await Promise.all(
-    (users || []).map(async (user) => {
-      const { count: eventCount } = await supabase
-        .from('events')
-        .select('*', { count: 'exact', head: true })
-        .eq('creator_id', user.id)
-      
-      return {
-        ...user,
-        event_count: eventCount || 0
-      }
-    })
-  )
+    if (error) {
+      console.error('Kullanıcılar yüklenirken hata:', error)
+      return []
+    }
 
-  return usersWithEventCounts
+    // Her kullanıcı için etkinlik sayısını al
+    const usersWithEventCounts = await Promise.all(
+      (users || []).map(async (user) => {
+        try {
+          const { count: eventCount } = await supabase
+            .from('events')
+            .select('*', { count: 'exact', head: true })
+            .eq('creator_id', user.id)
+          
+          return {
+            ...user,
+            event_count: eventCount || 0
+          }
+        } catch (error) {
+          console.error(`Kullanıcı ${user.id} için etkinlik sayısı alınırken hata:`, error)
+          return {
+            ...user,
+            event_count: 0
+          }
+        }
+      })
+    )
+
+    return usersWithEventCounts
+  } catch (error) {
+    console.error('Kullanıcılar yüklenirken genel hata:', error)
+    return []
+  }
 }
 
 export default async function UsersPage() {
@@ -49,23 +67,47 @@ export default async function UsersPage() {
 
   async function suspendUser(formData: FormData) {
     'use server'
-    const userId = String(formData.get('userId'))
-    const supabase = await getServerSupabase()
-    await supabase.from('users').update({ is_suspended: true }).eq('id', userId)
+    try {
+      const userId = String(formData.get('userId'))
+      const supabase = await getServerSupabase()
+      const { error } = await supabase.from('users').update({ is_suspended: true }).eq('id', userId)
+      
+      if (error) {
+        console.error('Kullanıcı askıya alınırken hata:', error)
+      }
+    } catch (error) {
+      console.error('Kullanıcı askıya alınırken genel hata:', error)
+    }
   }
 
   async function unsuspendUser(formData: FormData) {
     'use server'
-    const userId = String(formData.get('userId'))
-    const supabase = await getServerSupabase()
-    await supabase.from('users').update({ is_suspended: false }).eq('id', userId)
+    try {
+      const userId = String(formData.get('userId'))
+      const supabase = await getServerSupabase()
+      const { error } = await supabase.from('users').update({ is_suspended: false }).eq('id', userId)
+      
+      if (error) {
+        console.error('Kullanıcı askıdan çıkarılırken hata:', error)
+      }
+    } catch (error) {
+      console.error('Kullanıcı askıdan çıkarılırken genel hata:', error)
+    }
   }
 
   async function deleteUser(formData: FormData) {
     'use server'
-    const userId = String(formData.get('userId'))
-    const supabase = await getServerSupabase()
-    await supabase.from('users').delete().eq('id', userId)
+    try {
+      const userId = String(formData.get('userId'))
+      const supabase = await getServerSupabase()
+      const { error } = await supabase.from('users').delete().eq('id', userId)
+      
+      if (error) {
+        console.error('Kullanıcı silinirken hata:', error)
+      }
+    } catch (error) {
+      console.error('Kullanıcı silinirken genel hata:', error)
+    }
   }
 
   return (

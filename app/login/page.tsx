@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 export default function LoginPage() {
@@ -10,7 +10,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClientComponentClient()
+
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam === 'unauthorized') {
+      setError('Bu e-posta adresi admin yetkisine sahip değil.')
+    }
+  }, [searchParams])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,7 +42,8 @@ export default function LoginPage() {
         ]
         
         if (adminEmails.includes(email)) {
-          router.push('/dashboard')
+          const redirectTo = searchParams.get('redirect') || '/dashboard'
+          router.push(redirectTo)
           router.refresh()
         } else {
           setError('Bu e-posta adresi admin yetkisine sahip değil.')
