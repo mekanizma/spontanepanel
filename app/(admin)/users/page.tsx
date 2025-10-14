@@ -57,11 +57,12 @@ async function getUsers() {
 }
 
 export default async function UsersPage() {
-  const supabase = await getServerSupabase()
-  const { data } = await supabase.auth.getUser()
-  if (!data.user) {
-    redirect('/login?redirect=/users')
-  }
+  // Geçici olarak auth kontrolünü devre dışı bırak
+  // const supabase = await getServerSupabase()
+  // const { data } = await supabase.auth.getUser()
+  // if (!data.user) {
+  //   redirect('/login?redirect=/users')
+  // }
   
   const users = await getUsers()
 

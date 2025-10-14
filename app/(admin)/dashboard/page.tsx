@@ -59,11 +59,13 @@ async function getStats() {
 }
 
 export default async function DashboardPage() {
-  const supabase = await getServerSupabase()
-  const { data } = await supabase.auth.getUser()
-  if (!data.user) {
-    redirect('/login?redirect=/dashboard')
-  }
+  // Geçici olarak auth kontrolünü devre dışı bırak
+  // const supabase = await getServerSupabase()
+  // const { data } = await supabase.auth.getUser()
+  // if (!data.user) {
+  //   redirect('/login?redirect=/dashboard')
+  // }
+  
   const stats = await getStats()
   
   return (
