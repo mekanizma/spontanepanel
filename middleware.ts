@@ -33,9 +33,10 @@ export async function middleware(req: NextRequest) {
   // Kullanıcıyı kontrol et
   const { data: { user } } = await supabase.auth.getUser()
   
-  console.log('Middleware - Path:', req.nextUrl.pathname)
-  console.log('Middleware - User:', user?.email)
-  console.log('Middleware - Admin emails:', adminEmails)
+  console.log('🔍 Middleware - Path:', req.nextUrl.pathname)
+  console.log('🔍 Middleware - User:', user?.email)
+  console.log('🔍 Middleware - Admin emails:', adminEmails)
+  console.log('🔍 Middleware - User exists:', !!user)
 
   // Admin sayfalarına erişim kontrolü
   if (req.nextUrl.pathname.startsWith('/dashboard') || 
@@ -49,24 +50,24 @@ export async function middleware(req: NextRequest) {
       req.nextUrl.pathname.startsWith('/stories') ||
       req.nextUrl.pathname.startsWith('/settings')) {
     
-    console.log('Middleware - Admin sayfasına erişim:', req.nextUrl.pathname)
+    console.log('🔍 Middleware - Admin sayfasına erişim:', req.nextUrl.pathname)
     
     // Kullanıcı giriş yapmamışsa login'e yönlendir
     if (!user) {
-      console.log('Middleware - Kullanıcı giriş yapmamış, login\'e yönlendiriliyor')
+      console.log('❌ Middleware - Kullanıcı giriş yapmamış, login\'e yönlendiriliyor')
       return NextResponse.redirect(new URL('/login', req.url))
     }
 
     // Admin kontrolü
     const isAdmin = adminEmails.includes(user.email || '')
-    console.log('Middleware - Admin kontrolü:', isAdmin, 'Email:', user.email)
+    console.log('🔍 Middleware - Admin kontrolü:', isAdmin, 'Email:', user.email)
     
     if (!isAdmin) {
-      console.log('Middleware - Admin değil, login\'e yönlendiriliyor')
+      console.log('❌ Middleware - Admin değil, login\'e yönlendiriliyor')
       return NextResponse.redirect(new URL('/login?error=unauthorized', req.url))
     }
     
-    console.log('Middleware - Admin erişimi onaylandı')
+    console.log('✅ Middleware - Admin erişimi onaylandı')
   }
 
   // Login sayfasından admin sayfalarına yönlendirme
