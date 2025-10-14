@@ -1,96 +1,157 @@
-import { getServerSupabase } from '@/lib/supabaseServer'
-import { redirect } from 'next/navigation'
+'use client'
 
-async function getAllEvents() {
-  const supabase = await getServerSupabase()
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useEffect, useState } from 'react'
 
-  try {
-    const { data: events, error } = await supabase
-      .from('events')
-      .select(`
-        id,
-        title,
-        description,
-        start_time,
-        end_time,
-        location,
-        image_url,
-        creator_id,
-        status,
-        created_at,
-        users!creator_id (
-          username,
-          full_name,
-          profile_image_url
-        )
-      `)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Etkinlikler yüklenirken hata:', error)
-      return []
-    }
-
-    return events || []
-  } catch (error) {
-    console.error('Etkinlikler yüklenirken genel hata:', error)
-    return []
+interface Event {
+  id: string
+  title: string
+  description: string
+  start_time: string
+  end_time: string
+  location: string
+  image_url: string | null
+  creator_id: string
+  status: string
+  created_at: string
+  users: {
+    username: string
+    full_name: string
+    profile_image_url: string | null
   }
 }
 
-export default async function EventsPage() {
-  // Geçici olarak auth kontrolünü devre dışı bırak
-  // const supabase = await getServerSupabase()
-  // const { data } = await supabase.auth.getUser()
-  // if (!data.user) {
-  //   redirect('/login?redirect=/events')
-  // }
-  
-  const events = await getAllEvents()
+export default function EventsPage() {
+  const [events, setEvents] = useState<Event[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  async function approve(formData: FormData) {
-    'use server'
+  useEffect(() => {
+    async function loadEvents() {
+      console.log('🎉 Events yükleniyor...')
+      const supabase = createClientComponentClient()
+
+      try {
+        console.log('🎉 Events tablosundan veri çekiliyor...')
+        const { data: events, error } = await supabase
+          .from('events')
+          .select(`
+            id,
+            title,
+            description,
+            start_time,
+            end_time,
+            location,
+            image_url,
+            creator_id,
+            status,
+            created_at,
+            users!creator_id (
+              username,
+              full_name,
+              profile_image_url
+            )
+          `)
+          .order('created_at', { ascending: false })
+
+        console.log('🎉 Events sonucu:', { count: events?.length, error })
+
+        if (error) {
+          console.error('Etkinlikler yüklenirken hata:', error)
+          setError('Etkinlikler yüklenirken hata oluştu')
+          setLoading(false)
+          return
+        }
+
+        setEvents(events || [])
+        setLoading(false)
+      } catch (error) {
+        console.error('Etkinlikler yüklenirken genel hata:', error)
+        setError('Etkinlikler yüklenirken hata oluştu')
+        setLoading(false)
+      }
+    }
+
+    loadEvents()
+  }, [])
+
+  async function approveEvent(id: string) {
     try {
-      const id = String(formData.get('id'))
-      const supabase = await getServerSupabase()
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from('events').update({ status: 'approved' }).eq('id', id)
       
       if (error) {
         console.error('Etkinlik onaylanırken hata:', error)
+        return
       }
+      
+      // UI'yi güncelle
+      setEvents(events.map(event => 
+        event.id === id ? { ...event, status: 'approved' } : event
+      ))
     } catch (error) {
       console.error('Etkinlik onaylanırken genel hata:', error)
     }
   }
 
-  async function reject(formData: FormData) {
-    'use server'
+  async function rejectEvent(id: string) {
     try {
-      const id = String(formData.get('id'))
-      const supabase = await getServerSupabase()
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from('events').update({ status: 'rejected' }).eq('id', id)
       
       if (error) {
         console.error('Etkinlik reddedilirken hata:', error)
+        return
       }
+      
+      // UI'yi güncelle
+      setEvents(events.map(event => 
+        event.id === id ? { ...event, status: 'rejected' } : event
+      ))
     } catch (error) {
       console.error('Etkinlik reddedilirken genel hata:', error)
     }
   }
 
-  async function deactivate(formData: FormData) {
-    'use server'
+  async function deactivateEvent(id: string) {
     try {
-      const id = String(formData.get('id'))
-      const supabase = await getServerSupabase()
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from('events').update({ status: 'inactive' }).eq('id', id)
       
       if (error) {
         console.error('Etkinlik pasif yapılırken hata:', error)
+        return
       }
+      
+      // UI'yi güncelle
+      setEvents(events.map(event => 
+        event.id === id ? { ...event, status: 'inactive' } : event
+      ))
     } catch (error) {
       console.error('Etkinlik pasif yapılırken genel hata:', error)
     }
+  }
+
+  if (loading) {
+    return (
+      <main>
+        <h1>Etkinlik Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg">Etkinlikler yükleniyor...</div>
+        </div>
+      </main>
+    )
+  }
+
+  if (error) {
+    return (
+      <main>
+        <h1>Etkinlik Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg text-red-600">{error}</div>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -111,7 +172,7 @@ export default async function EventsPage() {
               </tr>
             </thead>
             <tbody>
-              {events.map((event: any) => (
+              {events.map((event) => (
                 <tr key={event.id}>
                   <td>
                     <div className="flex items-center gap-3">
@@ -194,28 +255,28 @@ export default async function EventsPage() {
                     <div className="flex gap-2">
                       {event.status === 'pending' && (
                         <>
-                          <form action={approve}>
-                            <input type="hidden" name="id" value={event.id} />
-                            <button type="submit" className="btn btn-success btn-sm">
-                              Onayla
-                            </button>
-                          </form>
-                          <form action={reject}>
-                            <input type="hidden" name="id" value={event.id} />
-                            <button type="submit" className="btn btn-danger btn-sm">
-                              Reddet
-                            </button>
-                          </form>
+                          <button 
+                            onClick={() => approveEvent(event.id)}
+                            className="btn btn-success btn-sm"
+                          >
+                            Onayla
+                          </button>
+                          <button 
+                            onClick={() => rejectEvent(event.id)}
+                            className="btn btn-danger btn-sm"
+                          >
+                            Reddet
+                          </button>
                         </>
                       )}
                       
                       {event.status === 'approved' && (
-                        <form action={deactivate}>
-                          <input type="hidden" name="id" value={event.id} />
-                          <button type="submit" className="btn btn-warning btn-sm">
-                            Pasif Yap
-                          </button>
-                        </form>
+                        <button 
+                          onClick={() => deactivateEvent(event.id)}
+                          className="btn btn-warning btn-sm"
+                        >
+                          Pasif Yap
+                        </button>
                       )}
                     </div>
                   </td>
@@ -228,5 +289,3 @@ export default async function EventsPage() {
     </main>
   )
 }
-
-

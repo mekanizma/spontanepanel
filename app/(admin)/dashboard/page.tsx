@@ -1,77 +1,111 @@
-import { getServerSupabase } from '@/lib/supabaseServer'
-import { redirect } from 'next/navigation'
+'use client'
 
-async function getStats() {
-  console.log('📊 Dashboard stats yükleniyor...')
-  const supabase = await getServerSupabase()
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useEffect, useState } from 'react'
 
-  try {
-    console.log('📊 Users tablosundan veri çekiliyor...')
-    const { count: totalUsers, error: usersError } = await supabase.from('users').select('*', { count: 'exact', head: true })
-    console.log('📊 Users sonucu:', { count: totalUsers, error: usersError })
-    
-    console.log('📊 Events tablosundan veri çekiliyor...')
-    const { count: totalEvents, error: eventsError } = await supabase.from('events').select('*', { count: 'exact', head: true })
-    console.log('📊 Events sonucu:', { count: totalEvents, error: eventsError })
-
-    const { count: pendingEvents } = await supabase
-      .from('events')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'pending')
-
-    // Reports tablosu yoksa 0 döndür
-    let pendingReports = 0
-    try {
-      const { count } = await supabase
-        .from('reports')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending')
-      pendingReports = count || 0
-    } catch {
-      console.log('Reports tablosu bulunamadı, 0 olarak ayarlandı')
-    }
-
-    const { count: premiumUsers } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_premium', true)
-
-    const { count: verifiedUsers } = await supabase
-      .from('users')
-      .select('*', { count: 'exact', head: true })
-      .eq('is_verified', true)
-
-    return { 
-      totalUsers: totalUsers || 0, 
-      totalEvents: totalEvents || 0, 
-      pendingEvents: pendingEvents || 0, 
-      pendingReports: pendingReports || 0,
-      premiumUsers: premiumUsers || 0,
-      verifiedUsers: verifiedUsers || 0
-    }
-  } catch (error) {
-    console.error('İstatistikler yüklenirken hata:', error)
-    return { 
-      totalUsers: 0, 
-      totalEvents: 0, 
-      pendingEvents: 0, 
-      pendingReports: 0,
-      premiumUsers: 0,
-      verifiedUsers: 0
-    }
-  }
+interface Stats {
+  totalUsers: number
+  totalEvents: number
+  pendingEvents: number
+  pendingReports: number
+  premiumUsers: number
+  verifiedUsers: number
 }
 
-export default async function DashboardPage() {
-  // Geçici olarak auth kontrolünü devre dışı bırak
-  // const supabase = await getServerSupabase()
-  // const { data } = await supabase.auth.getUser()
-  // if (!data.user) {
-  //   redirect('/login?redirect=/dashboard')
-  // }
+export default function DashboardPage() {
+  const [stats, setStats] = useState<Stats>({
+    totalUsers: 0,
+    totalEvents: 0,
+    pendingEvents: 0,
+    pendingReports: 0,
+    premiumUsers: 0,
+    verifiedUsers: 0
+  })
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function loadStats() {
+      console.log('📊 Dashboard stats yükleniyor...')
+      const supabase = createClientComponentClient()
+
+      try {
+        console.log('📊 Users tablosundan veri çekiliyor...')
+        const { count: totalUsers, error: usersError } = await supabase.from('users').select('*', { count: 'exact', head: true })
+        console.log('📊 Users sonucu:', { count: totalUsers, error: usersError })
+        
+        console.log('📊 Events tablosundan veri çekiliyor...')
+        const { count: totalEvents, error: eventsError } = await supabase.from('events').select('*', { count: 'exact', head: true })
+        console.log('📊 Events sonucu:', { count: totalEvents, error: eventsError })
+
+        const { count: pendingEvents } = await supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'pending')
+
+        // Reports tablosu yoksa 0 döndür
+        let pendingReports = 0
+        try {
+          const { count } = await supabase
+            .from('reports')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'pending')
+          pendingReports = count || 0
+        } catch {
+          console.log('Reports tablosu bulunamadı, 0 olarak ayarlandı')
+        }
+
+        const { count: premiumUsers } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_premium', true)
+
+        const { count: verifiedUsers } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true })
+          .eq('is_verified', true)
+
+        setStats({ 
+          totalUsers: totalUsers || 0, 
+          totalEvents: totalEvents || 0, 
+          pendingEvents: pendingEvents || 0, 
+          pendingReports: pendingReports || 0,
+          premiumUsers: premiumUsers || 0,
+          verifiedUsers: verifiedUsers || 0
+        })
+        setLoading(false)
+      } catch (error) {
+        console.error('İstatistikler yüklenirken hata:', error)
+        setError('Veriler yüklenirken hata oluştu')
+        setLoading(false)
+      }
+    }
+
+    loadStats()
+  }, [])
   
-  const stats = await getStats()
-  
+  if (loading) {
+    return (
+      <main>
+        <h1>Dashboard</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg">Veriler yükleniyor...</div>
+        </div>
+      </main>
+    )
+  }
+
+  if (error) {
+    return (
+      <main>
+        <h1>Dashboard</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg text-red-600">{error}</div>
+        </div>
+      </main>
+    )
+  }
+
   return (
     <main>
       <h1>Dashboard</h1>
