@@ -1,4 +1,5 @@
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
+import VerificationActions from './VerificationActions'
 
 interface VerificationRequest {
   id: string
@@ -81,19 +82,6 @@ export default async function VerificationPage() {
       <h1>Doğrulama Yönetimi</h1>
       
       <div className="card mt-6">
-        <div className="text-center py-8">
-          <div className="text-6xl mb-4">✅</div>
-          <h3 className="text-xl font-semibold mb-2">Doğrulama Sistemi</h3>
-          <p className="text-muted mb-4">
-            Kullanıcı doğrulama isteklerini onaylama özelliği burada olacak.
-          </p>
-          <div className="text-sm text-muted">
-            Bu özellik yakında eklenecek.
-          </div>
-        </div>
-      </div>
-      
-      <div className="card mt-6">
         <h2 className="text-xl font-semibold mb-4">Doğrulama İstekleri</h2>
         <div className="overflow-x-auto">
           <table className="table">
@@ -161,9 +149,10 @@ export default async function VerificationPage() {
                     </div>
                   </td>
                   <td>
-                    <div className="text-sm text-muted">
-                      {request.is_verified ? 'Doğrulandı' : 'Bekliyor'}
-                    </div>
+                    <VerificationActions 
+                      request={request} 
+                      onUpdate={() => window.location.reload()} 
+                    />
                   </td>
                 </tr>
               ))}

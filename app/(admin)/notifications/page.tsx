@@ -1,4 +1,5 @@
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
+import NotificationForm from './NotificationForm'
 
 interface Notification {
   id: string
@@ -80,18 +81,7 @@ export default async function NotificationsPage() {
     <main>
       <h1>Bildirim Yönetimi</h1>
       
-      <div className="card mt-6">
-        <div className="text-center py-8">
-          <div className="text-6xl mb-4">📢</div>
-          <h3 className="text-xl font-semibold mb-2">Push Notification Sistemi</h3>
-          <p className="text-muted mb-4">
-            Tüm kullanıcılara duyuru gönderme özelliği burada olacak.
-          </p>
-          <div className="text-sm text-muted">
-            Bu özellik yakında eklenecek.
-          </div>
-        </div>
-      </div>
+      <NotificationForm onUpdate={() => window.location.reload()} />
       
       <div className="card mt-6">
         <h2 className="text-xl font-semibold mb-4">Mevcut Bildirimler</h2>

@@ -1,4 +1,5 @@
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
+import UserActions from './UserActions'
 
 interface User {
   id: string
@@ -169,9 +170,7 @@ export default async function UsersPage() {
                     </div>
                   </td>
                   <td>
-                    <div className="text-sm text-muted">
-                      {user.status === 'suspended' ? 'Askıda' : 'Aktif'}
-                    </div>
+                    <UserActions user={user} onUpdate={() => window.location.reload()} />
                   </td>
                 </tr>
               ))}
