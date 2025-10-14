@@ -17,7 +17,7 @@ interface Event {
     username: string
     full_name: string
     profile_image_url: string | null
-  } | null
+  }[] | null
 }
 
 export default function EventsPage() {
@@ -216,21 +216,21 @@ export default function EventsPage() {
                   <td>
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {event.users?.profile_image_url ? (
+                        {event.users?.[0]?.profile_image_url ? (
                           <img 
-                            src={event.users.profile_image_url} 
-                            alt={event.users.username}
+                            src={event.users[0].profile_image_url} 
+                            alt={event.users[0].username}
                             className="w-full h-full object-cover"
                           />
                         ) : (
                           <span className="text-sm font-semibold">
-                            {event.users?.username?.charAt(0).toUpperCase() || 'U'}
+                            {event.users?.[0]?.username?.charAt(0).toUpperCase() || 'U'}
                           </span>
                         )}
                       </div>
                       <div>
-                        <div className="font-medium">{event.users?.full_name || event.users?.username}</div>
-                        <div className="text-sm text-muted">@{event.users?.username}</div>
+                        <div className="font-medium">{event.users?.[0]?.full_name || event.users?.[0]?.username}</div>
+                        <div className="text-sm text-muted">@{event.users?.[0]?.username}</div>
                       </div>
                     </div>
                   </td>
