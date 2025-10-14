@@ -37,11 +37,12 @@ async function getNotifications() {
 }
 
 export default async function NotificationsPage() {
-  const supabase = await getServerSupabase()
-  const { data } = await supabase.auth.getUser()
-  if (!data.user) {
-    redirect('/login?redirect=/notifications')
-  }
+  // Geçici olarak auth kontrolünü devre dışı bırak
+  // const supabase = await getServerSupabase()
+  // const { data } = await supabase.auth.getUser()
+  // if (!data.user) {
+  //   redirect('/login?redirect=/notifications')
+  // }
   
   const notifications = await getNotifications()
 

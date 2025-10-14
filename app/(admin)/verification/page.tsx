@@ -37,11 +37,12 @@ async function getVerificationRequests() {
 }
 
 export default async function VerificationPage() {
-  const supabase = await getServerSupabase()
-  const { data } = await supabase.auth.getUser()
-  if (!data.user) {
-    redirect('/login?redirect=/verification')
-  }
+  // Geçici olarak auth kontrolünü devre dışı bırak
+  // const supabase = await getServerSupabase()
+  // const { data } = await supabase.auth.getUser()
+  // if (!data.user) {
+  //   redirect('/login?redirect=/verification')
+  // }
   
   const requests = await getVerificationRequests()
 

@@ -3,17 +3,26 @@ import { cookies } from 'next/headers'
 
 export async function getServerSupabase() {
   const cookieStore = await cookies()
+  
+  console.log('🔧 Supabase Server Client oluşturuluyor...')
+  console.log('🔧 SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'var' : 'yok')
+  console.log('🔧 SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'var' : 'yok')
+  
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value
+          const cookie = cookieStore.get(name)?.value
+          console.log(`🍪 Server Cookie ${name}:`, cookie ? 'var' : 'yok')
+          return cookie
         },
       },
     },
   )
+  
+  console.log('🔧 Supabase Server Client oluşturuldu')
   return supabase
 }
 

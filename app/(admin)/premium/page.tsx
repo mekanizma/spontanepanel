@@ -69,11 +69,12 @@ async function getPremiumStats() {
 }
 
 export default async function PremiumPage() {
-  const supabase = await getServerSupabase()
-  const { data } = await supabase.auth.getUser()
-  if (!data.user) {
-    redirect('/login?redirect=/premium')
-  }
+  // Geçici olarak auth kontrolünü devre dışı bırak
+  // const supabase = await getServerSupabase()
+  // const { data } = await supabase.auth.getUser()
+  // if (!data.user) {
+  //   redirect('/login?redirect=/premium')
+  // }
   
   const premiumUsers = await getPremiumUsers()
   const stats = await getPremiumStats()

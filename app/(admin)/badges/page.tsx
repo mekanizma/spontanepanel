@@ -2,11 +2,12 @@ import { getServerSupabase } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 
 export default async function BadgesPage() {
-  const supabase = await getServerSupabase()
-  const { data } = await supabase.auth.getUser()
-  if (!data.user) {
-    redirect('/login?redirect=/badges')
-  }
+  // Geçici olarak auth kontrolünü devre dışı bırak
+  // const supabase = await getServerSupabase()
+  // const { data } = await supabase.auth.getUser()
+  // if (!data.user) {
+  //   redirect('/login?redirect=/badges')
+  // }
 
   return (
     <main>
