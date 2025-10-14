@@ -34,6 +34,16 @@ export default function UsersPage() {
       
       try {
         console.log('👥 Users tablosundan veri çekiliyor...')
+        
+        // Önce basit bir test sorgusu yapalım
+        console.log('🔍 Test sorgusu: Tüm kolonları çekiyorum...')
+        const { data: testUsers, error: testError } = await supabase
+          .from('users')
+          .select('*')
+          .limit(5)
+        
+        console.log('🔍 Test sonucu:', { count: testUsers?.length, error: testError, sample: testUsers?.[0] })
+        
         const { data: users, error } = await supabase
           .from('users')
           .select(`
