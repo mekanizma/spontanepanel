@@ -38,19 +38,29 @@ function LoginForm() {
         const adminEmails = [
           'admin@spontane.com',
           'yildirim@spontane.com',
+          'test@admin.com',
           // Buraya admin e-postalarını ekleyebilirsiniz
         ]
         
+        console.log('Giriş yapan e-posta:', email)
+        console.log('Admin e-postaları:', adminEmails)
+        console.log('Admin kontrolü:', adminEmails.includes(email))
+        
         if (adminEmails.includes(email)) {
+          console.log('Admin girişi başarılı, yönlendiriliyor...')
           const redirectTo = searchParams.get('redirect') || '/dashboard'
-          router.push(redirectTo)
-          router.refresh()
+          console.log('Yönlendirme hedefi:', redirectTo)
+          
+          // Yönlendirme işlemini daha güvenilir hale getir
+          window.location.href = redirectTo
         } else {
+          console.log('Admin değil, çıkış yapılıyor')
           setError('Bu e-posta adresi admin yetkisine sahip değil.')
           await supabase.auth.signOut()
         }
       }
-    } catch {
+    } catch (error) {
+      console.error('Giriş hatası:', error)
       setError('Giriş yapılırken bir hata oluştu.')
     } finally {
       setLoading(false)

@@ -27,6 +27,7 @@ export async function middleware(req: NextRequest) {
   const adminEmails = [
     'admin@spontane.com',
     'yildirim@spontane.com',
+    'test@admin.com',
   ]
 
   // Kullanıcıyı kontrol et
