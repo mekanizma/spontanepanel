@@ -22,18 +22,28 @@ function LoginForm() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('Form submit başladı!')
+    console.log('Email:', email)
+    console.log('Password:', password ? '***' : 'boş')
+    
     setLoading(true)
     setError('')
 
     try {
+      console.log('Supabase giriş denemesi başlıyor...')
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
+      console.log('Supabase yanıtı:', { data: data?.user?.email, error: error?.message })
+
       if (error) {
+        console.log('Supabase hatası:', error.message)
         setError(error.message)
       } else if (data.user) {
+        console.log('Supabase giriş başarılı, kullanıcı:', data.user.email)
+        
         // Admin kontrolü - sadece belirli e-postalar admin olabilir
         const adminEmails = [
           'admin@spontane.com',
@@ -58,11 +68,15 @@ function LoginForm() {
           setError('Bu e-posta adresi admin yetkisine sahip değil.')
           await supabase.auth.signOut()
         }
+      } else {
+        console.log('Beklenmeyen durum: data.user yok')
+        setError('Giriş yapılırken bir hata oluştu.')
       }
     } catch (error) {
       console.error('Giriş hatası:', error)
       setError('Giriş yapılırken bir hata oluştu.')
     } finally {
+      console.log('Giriş işlemi tamamlandı')
       setLoading(false)
     }
   }
@@ -128,6 +142,19 @@ function LoginForm() {
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
+            </button>
+            
+            {/* Test butonu */}
+            <button
+              type="button"
+              onClick={() => {
+                console.log('Test butonu tıklandı!')
+                console.log('Email state:', email)
+                console.log('Password state:', password ? '***' : 'boş')
+              }}
+              className="mt-2 w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Test (Console Log)
             </button>
           </div>
         </form>
