@@ -23,7 +23,7 @@ async function getStats() {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending')
       pendingReports = count || 0
-    } catch (error) {
+    } catch {
       console.log('Reports tablosu bulunamadı, 0 olarak ayarlandı')
     }
 
