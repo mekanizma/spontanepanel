@@ -47,6 +47,7 @@ export async function middleware(req: NextRequest) {
   console.log('🔍 Middleware - Error:', error?.message)
   console.log('🔍 Middleware - Admin emails:', adminEmails)
   console.log('🔍 Middleware - User exists:', !!user)
+  console.log('🔍 Middleware - Session cookie:', req.cookies.get('sb-namydkvicfdxsxdkmmgc-auth-token')?.value ? 'var' : 'yok')
 
   // Admin sayfalarına erişim kontrolü
   if (req.nextUrl.pathname.startsWith('/dashboard') || 

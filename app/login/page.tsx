@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 function LoginForm() {
@@ -10,6 +10,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const searchParams = useSearchParams()
+  const router = useRouter()
   const supabase = createClientComponentClient()
 
   useEffect(() => {
@@ -72,12 +73,30 @@ function LoginForm() {
           const redirectTo = searchParams.get('redirect') || '/dashboard'
           console.log('🎯 YÖNLENDİRME HEDEFİ:', redirectTo)
           
-          // Cookie'lerin set edilmesi için kısa bekleme
-          console.log('⏳ Cookie\'lerin set edilmesi için bekleniyor...')
-          setTimeout(() => {
-            console.log('🚀 Yönlendirme yapılıyor:', redirectTo)
-            window.location.href = redirectTo
-          }, 1000)
+          // Session'ın tam olarak kurulmasını bekle
+          console.log('⏳ Session kurulması bekleniyor...')
+          setTimeout(async () => {
+            try {
+              // Session'ı tekrar kontrol et
+              const { data: { session } } = await supabase.auth.getSession()
+              console.log('🔍 Session kontrolü:', !!session)
+              
+              if (session) {
+                console.log('🚀 Session hazır, yönlendirme yapılıyor:', redirectTo)
+                router.push(redirectTo)
+              } else {
+                console.log('⚠️ Session henüz hazır değil, tekrar deneniyor...')
+                setTimeout(() => {
+                  console.log('🚀 İkinci deneme yönlendirme:', redirectTo)
+                  router.push(redirectTo)
+                }, 500)
+              }
+            } catch (error) {
+              console.error('Session kontrolü hatası:', error)
+              console.log('🚀 Hata durumunda yönlendirme:', redirectTo)
+              router.push(redirectTo)
+            }
+          }, 1500)
         } else {
           console.log('❌ ADMIN DEĞİL!')
           setError('Bu e-posta adresi admin yetkisine sahip değil.')
