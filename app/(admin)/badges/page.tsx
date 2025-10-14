@@ -18,7 +18,6 @@ interface User {
   email: string
   full_name: string
   profile_image_url: string | null
-  badges: Badge[]
 }
 
 interface UserBadge {
