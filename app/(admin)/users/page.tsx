@@ -2,9 +2,11 @@ import { getServerSupabase } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 
 async function getUsers() {
+  console.log('👥 Users yükleniyor...')
   const supabase = await getServerSupabase()
   
   try {
+    console.log('👥 Users tablosundan veri çekiliyor...')
     const { data: users, error } = await supabase
       .from('users')
       .select(`
@@ -21,10 +23,7 @@ async function getUsers() {
       `)
       .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Kullanıcılar yüklenirken hata:', error)
-      return []
-    }
+    console.log('👥 Users sonucu:', { count: users?.length, error })
 
     // Her kullanıcı için etkinlik sayısını al
     const usersWithEventCounts = await Promise.all(

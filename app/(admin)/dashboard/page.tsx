@@ -2,13 +2,17 @@ import { getServerSupabase } from '@/lib/supabaseServer'
 import { redirect } from 'next/navigation'
 
 async function getStats() {
+  console.log('📊 Dashboard stats yükleniyor...')
   const supabase = await getServerSupabase()
 
   try {
-    const [{ count: totalUsers }, { count: totalEvents }] = await Promise.all([
-      supabase.from('users').select('*', { count: 'exact', head: true }),
-      supabase.from('events').select('*', { count: 'exact', head: true }),
-    ])
+    console.log('📊 Users tablosundan veri çekiliyor...')
+    const { count: totalUsers, error: usersError } = await supabase.from('users').select('*', { count: 'exact', head: true })
+    console.log('📊 Users sonucu:', { count: totalUsers, error: usersError })
+    
+    console.log('📊 Events tablosundan veri çekiliyor...')
+    const { count: totalEvents, error: eventsError } = await supabase.from('events').select('*', { count: 'exact', head: true })
+    console.log('📊 Events sonucu:', { count: totalEvents, error: eventsError })
 
     const { count: pendingEvents } = await supabase
       .from('events')
