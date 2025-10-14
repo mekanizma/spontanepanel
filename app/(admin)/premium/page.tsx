@@ -1,5 +1,8 @@
+'use client'
+
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
 import PremiumForm from './PremiumForm'
+import { useState, useEffect } from 'react'
 
 interface PremiumUser {
   id: string
@@ -48,15 +51,45 @@ async function getPremiumUsers(): Promise<PremiumUser[]> {
   }
 }
 
-export default async function PremiumPage() {
-  let premiumUsers: PremiumUser[]
-  let error: string | null = null
+export default function PremiumPage() {
+  const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  try {
-    premiumUsers = await getPremiumUsers()
-  } catch (err) {
-    error = err instanceof Error ? err.message : 'Bilinmeyen hata'
-    premiumUsers = []
+  useEffect(() => {
+    async function loadPremiumUsers() {
+      try {
+        const premiumData = await getPremiumUsers()
+        setPremiumUsers(premiumData)
+        setLoading(false)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
+        setLoading(false)
+      }
+    }
+    loadPremiumUsers()
+  }, [])
+
+  function refreshPremiumUsers() {
+    setLoading(true)
+    getPremiumUsers().then(premiumData => {
+      setPremiumUsers(premiumData)
+      setLoading(false)
+    }).catch(err => {
+      setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
+      setLoading(false)
+    })
+  }
+
+  if (loading) {
+    return (
+      <main>
+        <h1>Premium Üye Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg">Premium kullanıcılar yükleniyor...</div>
+        </div>
+      </main>
+    )
   }
 
   if (error) {
@@ -74,7 +107,7 @@ export default async function PremiumPage() {
     <main>
       <h1>Premium Üye Yönetimi</h1>
       
-      <PremiumForm onUpdate={() => window.location.reload()} />
+      <PremiumForm onUpdate={refreshPremiumUsers} />
       
       <div className="card mt-6">
         <h2 className="text-xl font-semibold mb-4">Premium Kullanıcılar</h2>

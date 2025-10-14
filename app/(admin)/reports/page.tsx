@@ -47,12 +47,22 @@ async function getReports(): Promise<Report[]> {
 
     if (error) {
       console.error('Şikayetler yüklenirken hata:', error)
+      // Reports tablosu yoksa boş array döndür
+      if (error.code === 'PGRST205') {
+        console.log('⚠️ Reports tablosu bulunamadı, boş array döndürülüyor')
+        return []
+      }
       throw new Error('Şikayetler yüklenirken hata oluştu')
     }
 
     return reports || []
   } catch (error) {
     console.error('Şikayetler yüklenirken genel hata:', error)
+    // Reports tablosu yoksa boş array döndür
+    if (error instanceof Error && error.message.includes('PGRST205')) {
+      console.log('⚠️ Reports tablosu bulunamadı, boş array döndürülüyor')
+      return []
+    }
     throw new Error('Şikayetler yüklenirken hata oluştu')
   }
 }

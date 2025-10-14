@@ -38,7 +38,7 @@ async function getEvents(): Promise<Event[]> {
         creator_id,
         status,
         created_at,
-        users!creator_id (
+        users!events_creator_id_fkey (
           username,
           full_name,
           profile_image_url

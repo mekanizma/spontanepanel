@@ -1,5 +1,8 @@
+'use client'
+
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
 import VerificationActions from './VerificationActions'
+import { useState, useEffect } from 'react'
 
 interface VerificationRequest {
   id: string
@@ -55,15 +58,45 @@ async function getVerificationRequests(): Promise<VerificationRequest[]> {
   }
 }
 
-export default async function VerificationPage() {
-  let requests: VerificationRequest[]
-  let error: string | null = null
+export default function VerificationPage() {
+  const [requests, setRequests] = useState<VerificationRequest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  try {
-    requests = await getVerificationRequests()
-  } catch (err) {
-    error = err instanceof Error ? err.message : 'Bilinmeyen hata'
-    requests = []
+  useEffect(() => {
+    async function loadVerificationRequests() {
+      try {
+        const requestsData = await getVerificationRequests()
+        setRequests(requestsData)
+        setLoading(false)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
+        setLoading(false)
+      }
+    }
+    loadVerificationRequests()
+  }, [])
+
+  function refreshRequests() {
+    setLoading(true)
+    getVerificationRequests().then(requestsData => {
+      setRequests(requestsData)
+      setLoading(false)
+    }).catch(err => {
+      setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
+      setLoading(false)
+    })
+  }
+
+  if (loading) {
+    return (
+      <main>
+        <h1>Doğrulama Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg">Doğrulama istekleri yükleniyor...</div>
+        </div>
+      </main>
+    )
   }
 
   if (error) {
@@ -151,7 +184,7 @@ export default async function VerificationPage() {
                   <td>
                     <VerificationActions 
                       request={request} 
-                      onUpdate={() => window.location.reload()} 
+                      onUpdate={refreshRequests} 
                     />
                   </td>
                 </tr>

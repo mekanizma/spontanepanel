@@ -1,5 +1,8 @@
+'use client'
+
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
 import UserActions from './UserActions'
+import { useState, useEffect } from 'react'
 
 interface User {
   id: string
@@ -76,15 +79,45 @@ async function getUsers(): Promise<User[]> {
   }
 }
 
-export default async function UsersPage() {
-  let users: User[]
-  let error: string | null = null
+export default function UsersPage() {
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  try {
-    users = await getUsers()
-  } catch (err) {
-    error = err instanceof Error ? err.message : 'Bilinmeyen hata'
-    users = []
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const usersData = await getUsers()
+        setUsers(usersData)
+        setLoading(false)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
+        setLoading(false)
+      }
+    }
+    loadUsers()
+  }, [])
+
+  function refreshUsers() {
+    setLoading(true)
+    getUsers().then(usersData => {
+      setUsers(usersData)
+      setLoading(false)
+    }).catch(err => {
+      setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
+      setLoading(false)
+    })
+  }
+
+  if (loading) {
+    return (
+      <main>
+        <h1>Kullanıcı Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg">Kullanıcılar yükleniyor...</div>
+        </div>
+      </main>
+    )
   }
 
   if (error) {
@@ -170,7 +203,7 @@ export default async function UsersPage() {
                     </div>
                   </td>
                   <td>
-                    <UserActions user={user} onUpdate={() => window.location.reload()} />
+                    <UserActions user={user} onUpdate={refreshUsers} />
                   </td>
                 </tr>
               ))}

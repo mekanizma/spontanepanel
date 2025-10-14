@@ -1,5 +1,8 @@
+'use client'
+
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
 import NotificationForm from './NotificationForm'
+import { useState, useEffect } from 'react'
 
 interface Notification {
   id: string
@@ -55,15 +58,45 @@ async function getNotifications(): Promise<Notification[]> {
   }
 }
 
-export default async function NotificationsPage() {
-  let notifications: Notification[]
-  let error: string | null = null
+export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  try {
-    notifications = await getNotifications()
-  } catch (err) {
-    error = err instanceof Error ? err.message : 'Bilinmeyen hata'
-    notifications = []
+  useEffect(() => {
+    async function loadNotifications() {
+      try {
+        const notificationsData = await getNotifications()
+        setNotifications(notificationsData)
+        setLoading(false)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
+        setLoading(false)
+      }
+    }
+    loadNotifications()
+  }, [])
+
+  function refreshNotifications() {
+    setLoading(true)
+    getNotifications().then(notificationsData => {
+      setNotifications(notificationsData)
+      setLoading(false)
+    }).catch(err => {
+      setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
+      setLoading(false)
+    })
+  }
+
+  if (loading) {
+    return (
+      <main>
+        <h1>Bildirim Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg">Bildirimler yükleniyor...</div>
+        </div>
+      </main>
+    )
   }
 
   if (error) {
@@ -81,7 +114,7 @@ export default async function NotificationsPage() {
     <main>
       <h1>Bildirim Yönetimi</h1>
       
-      <NotificationForm onUpdate={() => window.location.reload()} />
+      <NotificationForm onUpdate={refreshNotifications} />
       
       <div className="card mt-6">
         <h2 className="text-xl font-semibold mb-4">Mevcut Bildirimler</h2>

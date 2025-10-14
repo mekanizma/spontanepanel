@@ -10,7 +10,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const searchParams = useSearchParams()
-  const router = useRouter()
+// const router = useRouter()
   const supabase = createClientComponentClient()
 
   useEffect(() => {

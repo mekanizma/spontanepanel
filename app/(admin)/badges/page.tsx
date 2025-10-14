@@ -1,4 +1,4 @@
-import { createServiceSupabaseClient } from '@/lib/supabaseService'
+// import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
 export default async function BadgesPage() {
   return (

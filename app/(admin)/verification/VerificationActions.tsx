@@ -1,6 +1,6 @@
 'use client'
 
-import { createServiceSupabaseClient } from '@/lib/supabaseService'
+// import { createServiceSupabaseClient } from '@/lib/supabaseService'
 import { useState } from 'react'
 import VerificationModal from './VerificationModal'
 
