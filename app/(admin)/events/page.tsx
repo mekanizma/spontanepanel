@@ -96,7 +96,6 @@ export default async function EventsPage() {
                 <th>Tarih</th>
                 <th>Konum</th>
                 <th>Durum</th>
-                <th>Aksiyonlar</th>
               </tr>
             </thead>
             <tbody>
@@ -104,7 +103,7 @@ export default async function EventsPage() {
                 <tr key={event.id}>
                   <td>
                     <div className="flex items-center gap-3">
-                      <div className="w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden">
+                      <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden">
                         {event.image_url ? (
                           <img 
                             src={event.image_url} 
@@ -112,15 +111,14 @@ export default async function EventsPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-2xl">🎉</span>
+                          <span className="text-lg">🎉</span>
                         )}
                       </div>
-                      <div>
-                        <div className="font-semibold text-lg">{event.title}</div>
-                        <div className="text-sm text-muted line-clamp-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="font-semibold truncate">{event.title}</div>
+                        <div className="text-sm text-muted line-clamp-1">
                           {event.description}
                         </div>
-                        <div className="text-xs text-muted">ID: {event.id}</div>
                       </div>
                     </div>
                   </td>
@@ -139,9 +137,9 @@ export default async function EventsPage() {
                           </span>
                         )}
                       </div>
-                      <div>
-                        <div className="font-medium">{event.users?.[0]?.full_name || event.users?.[0]?.username}</div>
-                        <div className="text-sm text-muted">@{event.users?.[0]?.username}</div>
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{event.users?.[0]?.full_name || event.users?.[0]?.username}</div>
+                        <div className="text-sm text-muted truncate">@{event.users?.[0]?.username}</div>
                       </div>
                     </div>
                   </td>
@@ -159,32 +157,23 @@ export default async function EventsPage() {
                     </div>
                   </td>
                   <td>
-                    <div className="text-sm">
+                    <div className="text-sm max-w-32 truncate">
                       {event.location || 'Belirtilmemiş'}
                     </div>
                   </td>
                   <td>
-                    <div className="flex flex-col gap-1">
-                      {event.status === 'approved' && (
-                        <span className="badge badge-success">Onaylandı</span>
-                      )}
-                      {event.status === 'pending' && (
-                        <span className="badge badge-warning">Bekliyor</span>
-                      )}
-                      {event.status === 'rejected' && (
-                        <span className="badge badge-error">Reddedildi</span>
-                      )}
-                      {event.status === 'inactive' && (
-                        <span className="badge badge-error">Pasif</span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="text-sm text-muted">
-                      {event.status === 'pending' ? 'Bekliyor' : 
-                       event.status === 'approved' ? 'Onaylandı' : 
-                       event.status === 'rejected' ? 'Reddedildi' : 'Pasif'}
-                    </div>
+                    {event.status === 'approved' && (
+                      <span className="badge badge-success">Onaylandı</span>
+                    )}
+                    {event.status === 'pending' && (
+                      <span className="badge badge-warning">Bekliyor</span>
+                    )}
+                    {event.status === 'rejected' && (
+                      <span className="badge badge-error">Reddedildi</span>
+                    )}
+                    {event.status === 'inactive' && (
+                      <span className="badge badge-error">Pasif</span>
+                    )}
                   </td>
                 </tr>
               ))}

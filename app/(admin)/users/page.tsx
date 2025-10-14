@@ -1,6 +1,6 @@
 'use client'
 
-import { createServiceSupabaseClient } from '@/lib/supabaseService'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import UserActions from './UserActions'
 import { useState, useEffect } from 'react'
 
@@ -21,7 +21,7 @@ interface User {
 async function getUsers(): Promise<User[]> {
   console.log('👥 Users yükleniyor...')
   
-  const supabase = createServiceSupabaseClient()
+  const supabase = createClientComponentClient()
   
   try {
     console.log('👥 Users tablosundan veri çekiliyor...')

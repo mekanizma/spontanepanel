@@ -1,6 +1,6 @@
 'use client'
 
-import { createServiceSupabaseClient } from '@/lib/supabaseService'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 interface User {
   id: string
@@ -24,7 +24,7 @@ interface UserActionsProps {
 export default function UserActions({ user, onUpdate }: UserActionsProps) {
   async function suspendUser(userId: string) {
     try {
-      const supabase = createServiceSupabaseClient()
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from('users').update({ status: 'suspended' }).eq('id', userId)
       
       if (error) {
@@ -43,7 +43,7 @@ export default function UserActions({ user, onUpdate }: UserActionsProps) {
 
   async function unsuspendUser(userId: string) {
     try {
-      const supabase = createServiceSupabaseClient()
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from('users').update({ status: 'active' }).eq('id', userId)
       
       if (error) {
@@ -66,7 +66,7 @@ export default function UserActions({ user, onUpdate }: UserActionsProps) {
     }
     
     try {
-      const supabase = createServiceSupabaseClient()
+      const supabase = createClientComponentClient()
       const { error } = await supabase.from('users').delete().eq('id', userId)
       
       if (error) {
