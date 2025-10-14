@@ -1,58 +1,88 @@
-// import { getServerSupabase } from '@/lib/supabaseServer'
-// import { redirect } from 'next/navigation'
+'use client'
 
-async function getVerificationRequests() {
-  const supabase = await getServerSupabase()
+import { useEffect, useState } from 'react'
 
-  try {
-    const { data: requests, error } = await supabase
-      .from('user_verification')
-      .select(`
-        id,
-        user_id,
-        verification_type,
-        verification_data,
-        is_verified,
-        created_at,
-        verified_at,
-        users!user_id (
-          username,
-          full_name,
-          email,
-          profile_image_url
-        )
-      `)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Doğrulama istekleri yüklenirken hata:', error)
-      return []
-    }
-
-    return requests || []
-  } catch (error) {
-    console.error('Doğrulama istekleri yüklenirken genel hata:', error)
-    return []
-  }
+interface VerificationRequest {
+  id: string
+  user_id: string
+  verification_type: string
+  verification_data: any
+  is_verified: boolean
+  created_at: string
+  verified_at: string | null
+  users: {
+    username: string
+    full_name: string
+    profile_image_url: string | null
+  }[] | null
 }
 
-export default async function VerificationPage() {
-  // Geçici olarak auth kontrolünü devre dışı bırak
-  // const supabase = await getServerSupabase()
-  // const { data } = await supabase.auth.getUser()
-  // if (!data.user) {
-  //   redirect('/login?redirect=/verification')
-  // }
-  
-  const requests = await getVerificationRequests()
+export default function VerificationPage() {
+  const [requests, setRequests] = useState<VerificationRequest[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  async function approveVerification(formData: FormData) {
-    'use server'
-    try {
-      const requestId = String(formData.get('requestId'))
-      const supabase = await getServerSupabase()
+  useEffect(() => {
+    async function loadVerificationRequests() {
+      console.log('✅ Verification Requests yükleniyor...')
       
-      // Doğrulama isteğini onayla
+      // Environment variables kullan
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+
+      try {
+        console.log('✅ Verification Requests tablosundan veri çekiliyor...')
+        const { data: requests, error } = await supabase
+          .from('user_verification')
+          .select(`
+            id,
+            user_id,
+            verification_type,
+            verification_data,
+            is_verified,
+            created_at,
+            verified_at,
+            users!user_id (
+              username,
+              full_name,
+              profile_image_url
+            )
+          `)
+          .order('created_at', { ascending: false })
+
+        console.log('✅ Verification Requests sonucu:', { count: requests?.length, error })
+
+        if (error) {
+          console.error('Doğrulama istekleri yüklenirken hata:', error)
+          setError('Doğrulama istekleri yüklenirken hata oluştu')
+          setLoading(false)
+          return
+        }
+
+        setRequests(requests || [])
+        setLoading(false)
+      } catch (error) {
+        console.error('Doğrulama istekleri yüklenirken genel hata:', error)
+        setError('Doğrulama istekleri yüklenirken hata oluştu')
+        setLoading(false)
+      }
+    }
+
+    loadVerificationRequests()
+  }, [])
+
+  async function approveVerification(requestId: string) {
+    try {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      
+      // Önce verification request'i onayla
       const { error: verificationError } = await supabase
         .from('user_verification')
         .update({ 
@@ -60,54 +90,83 @@ export default async function VerificationPage() {
           verified_at: new Date().toISOString()
         })
         .eq('id', requestId)
-
+      
       if (verificationError) {
         console.error('Doğrulama onaylanırken hata:', verificationError)
         return
       }
 
-      // Kullanıcının doğrulanmış durumunu güncelle
-      const { data: verification } = await supabase
-        .from('user_verification')
-        .select('user_id')
-        .eq('id', requestId)
-        .single()
-
-      if (verification) {
+      // Kullanıcının is_verified durumunu güncelle
+      const request = requests.find(r => r.id === requestId)
+      if (request) {
         const { error: userError } = await supabase
           .from('users')
           .update({ is_verified: true })
-          .eq('id', verification.user_id)
-
+          .eq('id', request.user_id)
+        
         if (userError) {
           console.error('Kullanıcı doğrulama durumu güncellenirken hata:', userError)
+          return
         }
       }
+      
+      // UI'yi güncelle
+      setRequests(requests.map(request => 
+        request.id === requestId ? { 
+          ...request, 
+          is_verified: true,
+          verified_at: new Date().toISOString()
+        } : request
+      ))
     } catch (error) {
       console.error('Doğrulama onaylanırken genel hata:', error)
     }
   }
 
-  async function rejectVerification(formData: FormData) {
-    'use server'
+  async function rejectVerification(requestId: string) {
     try {
-      const requestId = String(formData.get('requestId'))
-      const supabase = await getServerSupabase()
-      
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
       const { error } = await supabase
         .from('user_verification')
-        .update({ 
-          is_verified: false,
-          verified_at: new Date().toISOString()
-        })
+        .delete()
         .eq('id', requestId)
-
+      
       if (error) {
-        console.error('Doğrulama reddedilirken hata:', error)
+        console.error('Doğrulama isteği reddedilirken hata:', error)
+        return
       }
+      
+      // UI'den kaldır
+      setRequests(requests.filter(request => request.id !== requestId))
     } catch (error) {
-      console.error('Doğrulama reddedilirken genel hata:', error)
+      console.error('Doğrulama isteği reddedilirken genel hata:', error)
     }
+  }
+
+  if (loading) {
+    return (
+      <main>
+        <h1>Doğrulama Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg">Doğrulama istekleri yükleniyor...</div>
+        </div>
+      </main>
+    )
+  }
+
+  if (error) {
+    return (
+      <main>
+        <h1>Doğrulama Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg text-red-600">{error}</div>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -115,102 +174,96 @@ export default async function VerificationPage() {
       <h1>Doğrulama Yönetimi</h1>
       
       <div className="card mt-6">
-        <h2 className="text-xl font-semibold mb-4">Doğrulama İstekleri</h2>
-        
-        {requests.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-6xl mb-4">✅</div>
-            <h3 className="text-xl font-semibold mb-2">Henüz doğrulama isteği yok</h3>
-            <p className="text-muted">Kullanıcıların doğrulama istekleri burada görünecek.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {requests.map((request: any) => (
-              <div key={request.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {request.users?.profile_image_url ? (
+        <div className="overflow-x-auto">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Kullanıcı</th>
+                <th>Doğrulama Türü</th>
+                <th>Veri</th>
+                <th>Durum</th>
+                <th>İstek Tarihi</th>
+                <th>Doğrulama Tarihi</th>
+                <th>Aksiyonlar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((request) => (
+                <tr key={request.id}>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                        {request.users?.[0]?.profile_image_url ? (
                           <img 
-                            src={request.users.profile_image_url} 
-                            alt={request.users.username}
+                            src={request.users[0].profile_image_url} 
+                            alt={request.users[0].username}
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-lg font-semibold">
-                            {request.users?.username?.charAt(0).toUpperCase() || 'U'}
+                          <span className="text-sm font-semibold">
+                            {request.users?.[0]?.username?.charAt(0).toUpperCase() || 'U'}
                           </span>
                         )}
                       </div>
                       <div>
-                        <div className="font-semibold">{request.users?.full_name || request.users?.username}</div>
-                        <div className="text-sm text-muted">@{request.users?.username}</div>
-                        <div className="text-xs text-muted">{request.users?.email}</div>
+                        <div className="font-medium">{request.users?.[0]?.full_name || request.users?.[0]?.username}</div>
+                        <div className="text-sm text-muted">@{request.users?.[0]?.username}</div>
                       </div>
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                      <div>
-                        <label className="text-sm font-medium text-muted">Doğrulama Türü</label>
-                        <div className="text-sm">{request.verification_type}</div>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted">Durum</label>
-                        <div>
-                          {request.is_verified ? (
-                            <span className="badge badge-success">Onaylandı</span>
-                          ) : (
-                            <span className="badge badge-warning">Bekliyor</span>
-                          )}
-                        </div>
-                      </div>
+                  </td>
+                  <td>
+                    <span className="badge badge-info">{request.verification_type}</span>
+                  </td>
+                  <td>
+                    <div className="text-sm text-muted">
+                      {JSON.stringify(request.verification_data)}
                     </div>
-                    
-                    {request.verification_data && (
-                      <div className="mb-3">
-                        <label className="text-sm font-medium text-muted">Doğrulama Verileri</label>
-                        <div className="text-sm bg-gray-50 p-2 rounded mt-1">
-                          <pre className="whitespace-pre-wrap text-xs">
-                            {JSON.stringify(request.verification_data, null, 2)}
-                          </pre>
-                        </div>
-                      </div>
+                  </td>
+                  <td>
+                    {request.is_verified ? (
+                      <span className="badge badge-success">Doğrulandı</span>
+                    ) : (
+                      <span className="badge badge-warning">Bekliyor</span>
                     )}
-                    
-                    <div className="text-xs text-muted">
-                      İstek Tarihi: {new Date(request.created_at).toLocaleString('tr-TR')}
-                      {request.verified_at && (
-                        <span className="ml-4">
-                          Onay Tarihi: {new Date(request.verified_at).toLocaleString('tr-TR')}
-                        </span>
-                      )}
+                  </td>
+                  <td>
+                    <div className="text-sm">
+                      {new Date(request.created_at).toLocaleDateString('tr-TR')}
                     </div>
-                  </div>
-                  
-                  <div className="flex gap-2">
-                    {!request.is_verified && (
-                      <>
-                        <form action={approveVerification}>
-                          <input type="hidden" name="requestId" value={request.id} />
-                          <button type="submit" className="btn btn-success btn-sm">
+                  </td>
+                  <td>
+                    <div className="text-sm">
+                      {request.verified_at ? 
+                        new Date(request.verified_at).toLocaleDateString('tr-TR') : 
+                        '-'
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex gap-2">
+                      {!request.is_verified && (
+                        <>
+                          <button 
+                            onClick={() => approveVerification(request.id)}
+                            className="btn btn-success btn-sm"
+                          >
                             Onayla
                           </button>
-                        </form>
-                        <form action={rejectVerification}>
-                          <input type="hidden" name="requestId" value={request.id} />
-                          <button type="submit" className="btn btn-danger btn-sm">
+                          <button 
+                            onClick={() => rejectVerification(request.id)}
+                            className="btn btn-danger btn-sm"
+                          >
                             Reddet
                           </button>
-                        </form>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
   )

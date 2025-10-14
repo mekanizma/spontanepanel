@@ -1,185 +1,254 @@
-// import { getServerSupabase } from '@/lib/supabaseServer'
-// import { redirect } from 'next/navigation'
+'use client'
 
-async function getReports() {
-  const supabase = await getServerSupabase()
+import { useEffect, useState } from 'react'
 
-  try {
-    // Reports tablosu yoksa boş array döndür
-    const { data: reports, error } = await supabase
-      .from('reports')
-      .select(`
-        id,
-        reporter_id,
-        reported_user_id,
-        reported_event_id,
-        reason,
-        description,
-        status,
-        created_at,
-        users!reporter_id (
-          username,
-          full_name,
-          profile_image_url
-        )
-      `)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Şikayetler yüklenirken hata:', error)
-      return []
-    }
-
-    return reports || []
-  } catch (error) {
-    console.error('Şikayetler yüklenirken genel hata:', error)
-    return []
-  }
+interface Report {
+  id: string
+  reporter_id: string
+  reported_user_id: string | null
+  reported_event_id: string | null
+  reason: string
+  description: string
+  status: string
+  created_at: string
+  users: {
+    username: string
+    full_name: string
+    profile_image_url: string | null
+  }[] | null
 }
 
-export default async function ReportsPage() {
-  // Geçici olarak auth kontrolünü devre dışı bırak
-  // const supabase = await getServerSupabase()
-  // const { data } = await supabase.auth.getUser()
-  // if (!data.user) {
-  //   redirect('/login?redirect=/reports')
-  // }
-  
-  const reports = await getReports()
+export default function ReportsPage() {
+  const [reports, setReports] = useState<Report[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  async function resolveReport(formData: FormData) {
-    'use server'
+  useEffect(() => {
+    async function loadReports() {
+      console.log('⚠️ Reports yükleniyor...')
+      
+      // Environment variables kullan
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+
+      try {
+        console.log('⚠️ Reports tablosundan veri çekiliyor...')
+        // Reports tablosu yoksa boş array döndür
+        const { data: reports, error } = await supabase
+          .from('reports')
+          .select(`
+            id,
+            reporter_id,
+            reported_user_id,
+            reported_event_id,
+            reason,
+            description,
+            status,
+            created_at,
+            users!reporter_id (
+              username,
+              full_name,
+              profile_image_url
+            )
+          `)
+          .order('created_at', { ascending: false })
+
+        console.log('⚠️ Reports sonucu:', { count: reports?.length, error })
+
+        if (error) {
+          console.error('Şikayetler yüklenirken hata:', error)
+          setError('Şikayetler yüklenirken hata oluştu')
+          setLoading(false)
+          return
+        }
+
+        setReports(reports || [])
+        setLoading(false)
+      } catch (error) {
+        console.error('Şikayetler yüklenirken genel hata:', error)
+        setError('Şikayetler yüklenirken hata oluştu')
+        setLoading(false)
+      }
+    }
+
+    loadReports()
+  }, [])
+
+  async function resolveReport(reportId: string) {
     try {
-      const reportId = String(formData.get('reportId'))
-      const supabase = await getServerSupabase()
-      const { error } = await supabase.from('reports').update({ status: 'resolved' }).eq('id', reportId)
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      const { error } = await supabase
+        .from('reports')
+        .update({ status: 'resolved' })
+        .eq('id', reportId)
       
       if (error) {
-        console.error('Şikayet çözülürken hata:', error)
+        console.error('Şikayet çözüldü olarak işaretlenirken hata:', error)
+        return
       }
+      
+      // UI'yi güncelle
+      setReports(reports.map(report => 
+        report.id === reportId ? { ...report, status: 'resolved' } : report
+      ))
     } catch (error) {
-      console.error('Şikayet çözülürken genel hata:', error)
+      console.error('Şikayet çözüldü olarak işaretlenirken genel hata:', error)
     }
   }
 
-  async function dismissReport(formData: FormData) {
-    'use server'
+  async function deleteReport(reportId: string) {
+    if (!confirm('Bu şikayeti silmek istediğinizden emin misiniz?')) {
+      return
+    }
+    
     try {
-      const reportId = String(formData.get('reportId'))
-      const supabase = await getServerSupabase()
-      const { error } = await supabase.from('reports').update({ status: 'dismissed' }).eq('id', reportId)
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      const { error } = await supabase
+        .from('reports')
+        .delete()
+        .eq('id', reportId)
       
       if (error) {
-        console.error('Şikayet reddedilirken hata:', error)
+        console.error('Şikayet silinirken hata:', error)
+        return
       }
+      
+      // UI'den kaldır
+      setReports(reports.filter(report => report.id !== reportId))
     } catch (error) {
-      console.error('Şikayet reddedilirken genel hata:', error)
+      console.error('Şikayet silinirken genel hata:', error)
     }
+  }
+
+  if (loading) {
+    return (
+      <main>
+        <h1>Şikayet Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg">Şikayetler yükleniyor...</div>
+        </div>
+      </main>
+    )
+  }
+
+  if (error) {
+    return (
+      <main>
+        <h1>Şikayet Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg text-red-600">{error}</div>
+        </div>
+      </main>
+    )
   }
 
   return (
     <main>
       <h1>Şikayet Yönetimi</h1>
       
-      {reports.length === 0 ? (
-        <div className="card mt-6">
-          <div className="text-center py-8">
-            <div className="text-6xl mb-4">📝</div>
-            <h3 className="text-xl font-semibold mb-2">Henüz şikayet bulunmuyor</h3>
-            <p className="text-muted">Kullanıcılar tarafından yapılan şikayetler burada görünecek.</p>
-          </div>
-        </div>
-      ) : (
-        <div className="card mt-6">
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Şikayet Eden</th>
-                  <th>Sebep</th>
-                  <th>Açıklama</th>
-                  <th>Tarih</th>
-                  <th>Durum</th>
-                  <th>Aksiyonlar</th>
+      <div className="card mt-6">
+        <div className="overflow-x-auto">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Şikayet Eden</th>
+                <th>Şikayet Türü</th>
+                <th>Sebep</th>
+                <th>Açıklama</th>
+                <th>Durum</th>
+                <th>Tarih</th>
+                <th>Aksiyonlar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reports.map((report) => (
+                <tr key={report.id}>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                        {report.users?.[0]?.profile_image_url ? (
+                          <img 
+                            src={report.users[0].profile_image_url} 
+                            alt={report.users[0].username}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold">
+                            {report.users?.[0]?.username?.charAt(0).toUpperCase() || 'U'}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium">{report.users?.[0]?.full_name || report.users?.[0]?.username}</div>
+                        <div className="text-sm text-muted">@{report.users?.[0]?.username}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="text-sm">
+                      {report.reported_user_id ? 'Kullanıcı' : 'Etkinlik'}
+                    </div>
+                  </td>
+                  <td>
+                    <span className="badge badge-warning">{report.reason}</span>
+                  </td>
+                  <td>
+                    <div className="text-sm text-muted line-clamp-2">
+                      {report.description}
+                    </div>
+                  </td>
+                  <td>
+                    {report.status === 'pending' && (
+                      <span className="badge badge-warning">Bekliyor</span>
+                    )}
+                    {report.status === 'resolved' && (
+                      <span className="badge badge-success">Çözüldü</span>
+                    )}
+                    {report.status === 'rejected' && (
+                      <span className="badge badge-error">Reddedildi</span>
+                    )}
+                  </td>
+                  <td>
+                    <div className="text-sm">
+                      {new Date(report.created_at).toLocaleDateString('tr-TR')}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex gap-2">
+                      {report.status === 'pending' && (
+                        <button 
+                          onClick={() => resolveReport(report.id)}
+                          className="btn btn-success btn-sm"
+                        >
+                          Çözüldü İşaretle
+                        </button>
+                      )}
+                      
+                      <button 
+                        onClick={() => deleteReport(report.id)}
+                        className="btn btn-danger btn-sm"
+                      >
+                        Sil
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {reports.map((report: any) => (
-                  <tr key={report.id}>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                          {report.users?.profile_image_url ? (
-                            <img 
-                              src={report.users.profile_image_url} 
-                              alt={report.users.username}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span className="text-sm font-semibold">
-                              {report.users?.username?.charAt(0).toUpperCase() || 'U'}
-                            </span>
-                          )}
-                        </div>
-                        <div>
-                          <div className="font-medium">{report.users?.full_name || report.users?.username}</div>
-                          <div className="text-sm text-muted">@{report.users?.username}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="text-sm">{report.reason || 'Belirtilmemiş'}</div>
-                    </td>
-                    <td>
-                      <div className="text-sm max-w-xs line-clamp-2">
-                        {report.description || 'Açıklama yok'}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="text-sm">
-                        {new Date(report.created_at).toLocaleDateString('tr-TR')}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex flex-col gap-1">
-                        {report.status === 'pending' && (
-                          <span className="badge badge-warning">Bekliyor</span>
-                        )}
-                        {report.status === 'resolved' && (
-                          <span className="badge badge-success">Çözüldü</span>
-                        )}
-                        {report.status === 'dismissed' && (
-                          <span className="badge badge-error">Reddedildi</span>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="flex gap-2">
-                        {report.status === 'pending' && (
-                          <>
-                            <form action={resolveReport}>
-                              <input type="hidden" name="reportId" value={report.id} />
-                              <button type="submit" className="btn btn-success btn-sm">
-                                Çöz
-                              </button>
-                            </form>
-                            <form action={dismissReport}>
-                              <input type="hidden" name="reportId" value={report.id} />
-                              <button type="submit" className="btn btn-danger btn-sm">
-                                Reddet
-                              </button>
-                            </form>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
     </main>
   )
 }

@@ -1,215 +1,244 @@
-// import { getServerSupabase } from '@/lib/supabaseServer'
-// import { redirect } from 'next/navigation'
+'use client'
 
-async function getNotifications() {
-  const supabase = await getServerSupabase()
+import { useEffect, useState } from 'react'
 
-  try {
-    const { data: notifications, error } = await supabase
-      .from('notifications')
-      .select(`
-        id,
-        user_id,
-        title,
-        message,
-        type,
-        is_read,
-        created_at,
-        users!user_id (
-          username,
-          full_name,
-          profile_image_url
-        )
-      `)
-      .order('created_at', { ascending: false })
-      .limit(100)
-
-    if (error) {
-      console.error('Bildirimler yüklenirken hata:', error)
-      return []
-    }
-
-    return notifications || []
-  } catch (error) {
-    console.error('Bildirimler yüklenirken genel hata:', error)
-    return []
-  }
+interface Notification {
+  id: string
+  user_id: string
+  title: string
+  message: string
+  type: string
+  is_read: boolean
+  created_at: string
+  users: {
+    username: string
+    full_name: string
+    profile_image_url: string | null
+  }[] | null
 }
 
-export default async function NotificationsPage() {
-  // Geçici olarak auth kontrolünü devre dışı bırak
-  // const supabase = await getServerSupabase()
-  // const { data } = await supabase.auth.getUser()
-  // if (!data.user) {
-  //   redirect('/login?redirect=/notifications')
-  // }
-  
-  const notifications = await getNotifications()
+export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  async function sendNotification(formData: FormData) {
-    'use server'
-    try {
-      const title = String(formData.get('title'))
-      const message = String(formData.get('message'))
-      const type = String(formData.get('type'))
-      const userId = String(formData.get('userId'))
-
-      if (!title || !message || !type) {
-        console.error('Eksik alanlar')
-        return
-      }
-
-      const supabase = await getServerSupabase()
+  useEffect(() => {
+    async function loadNotifications() {
+      console.log('🔔 Notifications yükleniyor...')
       
-      if (userId && userId !== 'all') {
-        // Belirli kullanıcıya gönder
-        const { error } = await supabase.from('notifications').insert({
-          user_id: userId,
-          title,
-          message,
-          type,
-          is_read: false
-        })
-        
-        if (error) {
-          console.error('Bildirim gönderilirken hata:', error)
-        }
-      } else {
-        // Tüm kullanıcılara gönder - bu durumda tüm kullanıcıları alıp her birine gönder
-        const { data: users } = await supabase.from('users').select('id')
-        
-        if (users) {
-          const notificationInserts = users.map(user => ({
-            user_id: user.id,
+      // Environment variables kullan
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+
+      try {
+        console.log('🔔 Notifications tablosundan veri çekiliyor...')
+        const { data: notifications, error } = await supabase
+          .from('notifications')
+          .select(`
+            id,
+            user_id,
             title,
             message,
             type,
-            is_read: false
-          }))
-          
-          const { error } = await supabase.from('notifications').insert(notificationInserts)
-          
-          if (error) {
-            console.error('Toplu bildirim gönderilirken hata:', error)
-          }
+            is_read,
+            created_at,
+            users!user_id (
+              username,
+              full_name,
+              profile_image_url
+            )
+          `)
+          .order('created_at', { ascending: false })
+
+        console.log('🔔 Notifications sonucu:', { count: notifications?.length, error })
+
+        if (error) {
+          console.error('Bildirimler yüklenirken hata:', error)
+          setError('Bildirimler yüklenirken hata oluştu')
+          setLoading(false)
+          return
         }
+
+        setNotifications(notifications || [])
+        setLoading(false)
+      } catch (error) {
+        console.error('Bildirimler yüklenirken genel hata:', error)
+        setError('Bildirimler yüklenirken hata oluştu')
+        setLoading(false)
       }
-    } catch (error) {
-      console.error('Bildirim gönderilirken genel hata:', error)
     }
+
+    loadNotifications()
+  }, [])
+
+  async function markAsRead(notificationId: string) {
+    try {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId)
+      
+      if (error) {
+        console.error('Bildirim okundu olarak işaretlenirken hata:', error)
+        return
+      }
+      
+      // UI'yi güncelle
+      setNotifications(notifications.map(notification => 
+        notification.id === notificationId ? { ...notification, is_read: true } : notification
+      ))
+    } catch (error) {
+      console.error('Bildirim okundu olarak işaretlenirken genel hata:', error)
+    }
+  }
+
+  async function deleteNotification(notificationId: string) {
+    if (!confirm('Bu bildirimi silmek istediğinizden emin misiniz?')) {
+      return
+    }
+    
+    try {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+      
+      if (error) {
+        console.error('Bildirim silinirken hata:', error)
+        return
+      }
+      
+      // UI'den kaldır
+      setNotifications(notifications.filter(notification => notification.id !== notificationId))
+    } catch (error) {
+      console.error('Bildirim silinirken genel hata:', error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <main>
+        <h1>Bildirim Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg">Bildirimler yükleniyor...</div>
+        </div>
+      </main>
+    )
+  }
+
+  if (error) {
+    return (
+      <main>
+        <h1>Bildirim Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg text-red-600">{error}</div>
+        </div>
+      </main>
+    )
   }
 
   return (
     <main>
       <h1>Bildirim Yönetimi</h1>
       
-      {/* Bildirim Gönderme Formu */}
       <div className="card mt-6">
-        <h2 className="text-xl font-semibold mb-4">Yeni Bildirim Gönder</h2>
-        <form action={sendNotification} className="space-y-4">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium mb-1">Başlık</label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              required
-              className="input"
-              placeholder="Bildirim başlığı"
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="message" className="block text-sm font-medium mb-1">Mesaj</label>
-            <textarea
-              id="message"
-              name="message"
-              required
-              rows={3}
-              className="input"
-              placeholder="Bildirim mesajı"
-            />
-          </div>
-          
-          <div>
-            <label htmlFor="type" className="block text-sm font-medium mb-1">Tür</label>
-            <select id="type" name="type" required className="input">
-              <option value="info">Bilgi</option>
-              <option value="warning">Uyarı</option>
-              <option value="success">Başarı</option>
-              <option value="error">Hata</option>
-              <option value="announcement">Duyuru</option>
-            </select>
-          </div>
-          
-          <div>
-            <label htmlFor="userId" className="block text-sm font-medium mb-1">Hedef</label>
-            <select id="userId" name="userId" className="input">
-              <option value="all">Tüm Kullanıcılar</option>
-              {/* Burada kullanıcı listesi olabilir */}
-            </select>
-          </div>
-          
-          <button type="submit" className="btn btn-primary">
-            Bildirim Gönder
-          </button>
-        </form>
-      </div>
-
-      {/* Bildirim Listesi */}
-      <div className="card mt-6">
-        <h2 className="text-xl font-semibold mb-4">Son Bildirimler</h2>
-        
-        {notifications.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-6xl mb-4">🔔</div>
-            <h3 className="text-xl font-semibold mb-2">Henüz bildirim yok</h3>
-            <p className="text-muted">Gönderilen bildirimler burada görünecek.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {notifications.map((notification: any) => (
-              <div key={notification.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className={`badge ${
-                        notification.type === 'info' ? 'badge-info' :
-                        notification.type === 'warning' ? 'badge-warning' :
-                        notification.type === 'success' ? 'badge-success' :
-                        notification.type === 'error' ? 'badge-error' :
-                        'badge-info'
-                      }`}>
-                        {notification.type}
-                      </span>
-                      <span className="text-sm text-muted">
-                        {new Date(notification.created_at).toLocaleString('tr-TR')}
-                      </span>
-                    </div>
-                    
-                    <h3 className="font-semibold mb-1">{notification.title}</h3>
-                    <p className="text-muted mb-2">{notification.message}</p>
-                    
-                    {notification.users && (
-                      <div className="flex items-center gap-2 text-sm text-muted">
-                        <span>👤</span>
-                        <span>{notification.users.full_name || notification.users.username}</span>
+        <div className="overflow-x-auto">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Kullanıcı</th>
+                <th>Başlık</th>
+                <th>Mesaj</th>
+                <th>Tür</th>
+                <th>Durum</th>
+                <th>Tarih</th>
+                <th>Aksiyonlar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {notifications.map((notification) => (
+                <tr key={notification.id}>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                        {notification.users?.[0]?.profile_image_url ? (
+                          <img 
+                            src={notification.users[0].profile_image_url} 
+                            alt={notification.users[0].username}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold">
+                            {notification.users?.[0]?.username?.charAt(0).toUpperCase() || 'U'}
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2">
+                      <div>
+                        <div className="font-medium">{notification.users?.[0]?.full_name || notification.users?.[0]?.username}</div>
+                        <div className="text-sm text-muted">@{notification.users?.[0]?.username}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div className="font-medium">{notification.title}</div>
+                  </td>
+                  <td>
+                    <div className="text-sm text-muted line-clamp-2">
+                      {notification.message}
+                    </div>
+                  </td>
+                  <td>
+                    <span className="badge badge-info">{notification.type}</span>
+                  </td>
+                  <td>
                     {notification.is_read ? (
                       <span className="badge badge-success">Okundu</span>
                     ) : (
                       <span className="badge badge-warning">Okunmadı</span>
                     )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                  </td>
+                  <td>
+                    <div className="text-sm">
+                      {new Date(notification.created_at).toLocaleDateString('tr-TR')}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="flex gap-2">
+                      {!notification.is_read && (
+                        <button 
+                          onClick={() => markAsRead(notification.id)}
+                          className="btn btn-success btn-sm"
+                        >
+                          Okundu İşaretle
+                        </button>
+                      )}
+                      
+                      <button 
+                        onClick={() => deleteNotification(notification.id)}
+                        className="btn btn-danger btn-sm"
+                      >
+                        Sil
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </main>
   )
