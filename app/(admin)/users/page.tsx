@@ -7,10 +7,10 @@ interface User {
   username: string
   email: string
   full_name: string
-  created_at: string
+  join_date: string
   is_premium: boolean
   is_verified: boolean
-  is_suspended: boolean
+  status: string
   premium_expires_at: string | null
   profile_image_url: string | null
   event_count: number
@@ -41,14 +41,14 @@ export default function UsersPage() {
             username,
             email,
             full_name,
-            created_at,
+            join_date,
             is_premium,
             is_verified,
-            is_suspended,
+            status,
             premium_expires_at,
             profile_image_url
           `)
-          .order('created_at', { ascending: false })
+          .order('join_date', { ascending: false })
 
         console.log('👥 Users sonucu:', { count: users?.length, error })
 
@@ -101,7 +101,7 @@ export default function UsersPage() {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
-      const { error } = await supabase.from('users').update({ is_suspended: true }).eq('id', userId)
+      const { error } = await supabase.from('users').update({ status: 'suspended' }).eq('id', userId)
       
       if (error) {
         console.error('Kullanıcı askıya alınırken hata:', error)
@@ -110,7 +110,7 @@ export default function UsersPage() {
       
       // UI'yi güncelle
       setUsers(users.map(user => 
-        user.id === userId ? { ...user, is_suspended: true } : user
+        user.id === userId ? { ...user, status: 'suspended' } : user
       ))
     } catch (error) {
       console.error('Kullanıcı askıya alınırken genel hata:', error)
@@ -124,7 +124,7 @@ export default function UsersPage() {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
-      const { error } = await supabase.from('users').update({ is_suspended: false }).eq('id', userId)
+      const { error } = await supabase.from('users').update({ status: 'active' }).eq('id', userId)
       
       if (error) {
         console.error('Kullanıcı askıdan çıkarılırken hata:', error)
@@ -133,7 +133,7 @@ export default function UsersPage() {
       
       // UI'yi güncelle
       setUsers(users.map(user => 
-        user.id === userId ? { ...user, is_suspended: false } : user
+        user.id === userId ? { ...user, status: 'active' } : user
       ))
     } catch (error) {
       console.error('Kullanıcı askıdan çıkarılırken genel hata:', error)
@@ -234,7 +234,7 @@ export default function UsersPage() {
                   </td>
                   <td>
                     <div className="text-sm">
-                      {new Date(user.created_at).toLocaleDateString('tr-TR')}
+                      {new Date(user.join_date).toLocaleDateString('tr-TR')}
                     </div>
                   </td>
                   <td>
@@ -250,17 +250,17 @@ export default function UsersPage() {
                       {user.is_verified && (
                         <span className="badge badge-info">Doğrulanmış</span>
                       )}
-                      {user.is_suspended && (
+                      {user.status === 'suspended' && (
                         <span className="badge badge-error">Askıda</span>
                       )}
-                      {!user.is_premium && !user.is_verified && !user.is_suspended && (
+                      {user.status === 'active' && !user.is_premium && !user.is_verified && (
                         <span className="badge badge-warning">Normal</span>
                       )}
                     </div>
                   </td>
                   <td>
                     <div className="flex gap-2">
-                      {user.is_suspended ? (
+                      {user.status === 'suspended' ? (
                         <button 
                           onClick={() => unsuspendUser(user.id)}
                           className="btn btn-success btn-sm"
