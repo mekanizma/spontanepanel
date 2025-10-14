@@ -4,6 +4,8 @@ import { createServerClient } from '@supabase/ssr'
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   
+  console.log('🚀 Middleware başladı - Path:', req.nextUrl.pathname)
+  
   // Supabase client oluştur
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,12 +13,16 @@ export async function middleware(req: NextRequest) {
     {
       cookies: {
         get(name: string) {
-          return req.cookies.get(name)?.value
+          const cookie = req.cookies.get(name)?.value
+          console.log(`🍪 Cookie ${name}:`, cookie ? 'var' : 'yok')
+          return cookie
         },
         set(name: string, value: string, options: any) {
+          console.log(`🍪 Cookie set ${name}:`, value ? 'var' : 'yok')
           res.cookies.set(name, value, options)
         },
         remove(name: string, options: any) {
+          console.log(`🍪 Cookie remove ${name}`)
           res.cookies.delete({ name, ...options })
         },
       },
