@@ -87,7 +87,18 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [], // Middleware'i geçici olarak devre dışı bırak
+  matcher: [
+    '/dashboard/:path*',
+    '/users/:path*',
+    '/events/:path*',
+    '/notifications/:path*',
+    '/premium/:path*',
+    '/reports/:path*',
+    '/verification/:path*',
+    '/badges/:path*',
+    '/stories/:path*',
+    '/settings/:path*',
+  ],
 }
 
 

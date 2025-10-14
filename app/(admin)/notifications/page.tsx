@@ -26,12 +26,9 @@ export default function NotificationsPage() {
     async function loadNotifications() {
       console.log('🔔 Notifications yükleniyor...')
       
-      // Environment variables kullan
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      // Service Role Key kullan
+      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
+      const supabase = await getServiceSupabaseClient()
 
       try {
         console.log('🔔 Notifications tablosundan veri çekiliyor...')

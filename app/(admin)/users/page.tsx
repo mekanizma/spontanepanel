@@ -25,12 +25,9 @@ export default function UsersPage() {
     async function loadUsers() {
       console.log('👥 Users yükleniyor...')
       
-      // Environment variables kullan
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      // Service Role Key kullan
+      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
+      const supabase = await getServiceSupabaseClient()
       
       try {
         console.log('👥 Users tablosundan veri çekiliyor...')
@@ -106,11 +103,8 @@ export default function UsersPage() {
 
   async function suspendUser(userId: string) {
     try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
+      const supabase = await getServiceSupabaseClient()
       const { error } = await supabase.from('users').update({ status: 'suspended' }).eq('id', userId)
       
       if (error) {
@@ -129,11 +123,8 @@ export default function UsersPage() {
 
   async function unsuspendUser(userId: string) {
     try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
+      const supabase = await getServiceSupabaseClient()
       const { error } = await supabase.from('users').update({ status: 'active' }).eq('id', userId)
       
       if (error) {
@@ -156,11 +147,8 @@ export default function UsersPage() {
     }
     
     try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
+      const supabase = await getServiceSupabaseClient()
       const { error } = await supabase.from('users').delete().eq('id', userId)
       
       if (error) {

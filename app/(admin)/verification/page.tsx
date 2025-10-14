@@ -26,12 +26,9 @@ export default function VerificationPage() {
     async function loadVerificationRequests() {
       console.log('✅ Verification Requests yükleniyor...')
       
-      // Environment variables kullan
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      // Service Role Key kullan
+      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
+      const supabase = await getServiceSupabaseClient()
 
       try {
         console.log('✅ Verification Requests tablosundan veri çekiliyor...')

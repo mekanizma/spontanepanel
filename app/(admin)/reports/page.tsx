@@ -27,12 +27,9 @@ export default function ReportsPage() {
     async function loadReports() {
       console.log('⚠️ Reports yükleniyor...')
       
-      // Environment variables kullan
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      // Service Role Key kullan
+      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
+      const supabase = await getServiceSupabaseClient()
 
       try {
         console.log('⚠️ Reports tablosundan veri çekiliyor...')

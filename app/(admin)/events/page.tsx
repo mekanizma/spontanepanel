@@ -29,12 +29,9 @@ export default function EventsPage() {
     async function loadEvents() {
       console.log('🎉 Events yükleniyor...')
       
-      // Environment variables kullan
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      // Service Role Key kullan
+      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
+      const supabase = await getServiceSupabaseClient()
 
       try {
         console.log('🎉 Events tablosundan veri çekiliyor...')
@@ -82,11 +79,8 @@ export default function EventsPage() {
 
   async function approveEvent(id: string) {
     try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
+      const supabase = await getServiceSupabaseClient()
       const { error } = await supabase.from('events').update({ status: 'approved' }).eq('id', id)
       
       if (error) {
@@ -105,11 +99,8 @@ export default function EventsPage() {
 
   async function rejectEvent(id: string) {
     try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
+      const supabase = await getServiceSupabaseClient()
       const { error } = await supabase.from('events').update({ status: 'rejected' }).eq('id', id)
       
       if (error) {
@@ -128,11 +119,8 @@ export default function EventsPage() {
 
   async function deactivateEvent(id: string) {
     try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
+      const supabase = await getServiceSupabaseClient()
       const { error } = await supabase.from('events').update({ status: 'inactive' }).eq('id', id)
       
       if (error) {
