@@ -32,9 +32,6 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  // Cookie'leri yenile
-  await supabase.auth.getSession()
-
   // Admin e-postaları listesi
   const adminEmails = [
     'admin@spontane.com',

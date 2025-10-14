@@ -73,34 +73,12 @@ function LoginForm() {
           const redirectTo = searchParams.get('redirect') || '/dashboard'
           console.log('🎯 YÖNLENDİRME HEDEFİ:', redirectTo)
           
-          // Session'ın tam olarak kurulmasını bekle
-          console.log('⏳ Session kurulması bekleniyor...')
-          setTimeout(async () => {
-            try {
-              // Session'ı tekrar kontrol et
-              const { data: { session } } = await supabase.auth.getSession()
-              console.log('🔍 Session kontrolü:', !!session)
-              
-              if (session) {
-                console.log('🚀 Session hazır, yönlendirme yapılıyor:', redirectTo)
-                // Cookie'lerin set edilmesi için ekstra bekleme
-                setTimeout(() => {
-                  console.log('🚀 Cookie\'ler set edildi, yönlendirme:', redirectTo)
-                  router.push(redirectTo)
-                }, 500)
-              } else {
-                console.log('⚠️ Session henüz hazır değil, tekrar deneniyor...')
-                setTimeout(() => {
-                  console.log('🚀 İkinci deneme yönlendirme:', redirectTo)
-                  router.push(redirectTo)
-                }, 1000)
-              }
-            } catch (error) {
-              console.error('Session kontrolü hatası:', error)
-              console.log('🚀 Hata durumunda yönlendirme:', redirectTo)
-              router.push(redirectTo)
-            }
-          }, 2000)
+          // Hard redirect ile yönlendirme (middleware sorununu bypass eder)
+          console.log('⏳ Hard redirect için bekleniyor...')
+          setTimeout(() => {
+            console.log('🚀 Hard redirect yapılıyor:', redirectTo)
+            window.location.href = redirectTo
+          }, 1000)
         } else {
           console.log('❌ ADMIN DEĞİL!')
           setError('Bu e-posta adresi admin yetkisine sahip değil.')
