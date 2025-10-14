@@ -9,7 +9,7 @@ interface User {
   username: string
   email: string
   full_name: string
-  join_date: string
+  created_at: string
   is_premium: boolean
   is_verified: boolean
   status: string
@@ -33,14 +33,14 @@ async function getUsers(): Promise<User[]> {
         username,
         email,
         full_name,
-        join_date,
+        created_at,
         is_premium,
         is_verified,
         status,
         premium_expires_at,
         profile_image_url
       `)
-      .order('join_date', { ascending: false })
+      .order('created_at', { ascending: false })
 
     console.log('👥 Users sonucu:', { count: users?.length, error })
 
@@ -178,7 +178,7 @@ export default function UsersPage() {
                   </td>
                   <td>
                     <div className="text-sm">
-                      {new Date(user.join_date).toLocaleDateString('tr-TR')}
+                      {new Date(user.created_at).toLocaleDateString('tr-TR')}
                     </div>
                   </td>
                   <td>

@@ -103,7 +103,7 @@ export default async function EventsPage() {
                 <tr key={event.id}>
                   <td>
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden">
+                      <div className="w-8 h-8 rounded-lg bg-gray-200 flex items-center justify-center overflow-hidden">
                         {event.image_url ? (
                           <img 
                             src={event.image_url} 
@@ -111,7 +111,7 @@ export default async function EventsPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <span className="text-lg">🎉</span>
+                          <span className="text-sm">🎉</span>
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
