@@ -88,28 +88,28 @@ export default async function NotificationsPage() {
           <div className="p-4 border border-gray-200 rounded-lg">
             <h3 className="font-semibold text-green-600">Duyuru</h3>
             <p className="text-sm text-muted">
-              "Yeni etkinlik kategorileri eklendi! Artık daha fazla seçenekle etkinlik oluşturabilirsiniz."
+              &ldquo;Yeni etkinlik kategorileri eklendi! Artık daha fazla seçenekle etkinlik oluşturabilirsiniz.&rdquo;
             </p>
           </div>
           
           <div className="p-4 border border-gray-200 rounded-lg">
             <h3 className="font-semibold text-blue-600">Güncelleme</h3>
             <p className="text-sm text-muted">
-              "Uygulama güncellemesi mevcut! Yeni özellikler ve iyileştirmeler için uygulamayı güncelleyin."
+              &ldquo;Uygulama güncellemesi mevcut! Yeni özellikler ve iyileştirmeler için uygulamayı güncelleyin.&rdquo;
             </p>
           </div>
           
           <div className="p-4 border border-gray-200 rounded-lg">
             <h3 className="font-semibold text-yellow-600">Bakım</h3>
             <p className="text-sm text-muted">
-              "Sistem bakımı nedeniyle 2 saat boyunca hizmet veremeyeceğiz. Anlayışınız için teşekkürler."
+              &ldquo;Sistem bakımı nedeniyle 2 saat boyunca hizmet veremeyeceğiz. Anlayışınız için teşekkürler.&rdquo;
             </p>
           </div>
           
           <div className="p-4 border border-gray-200 rounded-lg">
             <h3 className="font-semibold text-purple-600">Promosyon</h3>
             <p className="text-sm text-muted">
-              "Premium üyelik %50 indirimle! Sınırlı süre için özel fiyatlardan yararlanın."
+              &ldquo;Premium üyelik %50 indirimle! Sınırlı süre için özel fiyatlardan yararlanın.&rdquo;
             </p>
           </div>
         </div>

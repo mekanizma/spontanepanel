@@ -41,7 +41,7 @@ export default function LoginPage() {
           await supabase.auth.signOut()
         }
       }
-    } catch (err) {
+    } catch (error) {
       setError('Giriş yapılırken bir hata oluştu.')
     } finally {
       setLoading(false)
