@@ -1,3 +1,6 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
 interface User {
@@ -84,15 +87,94 @@ async function getUsers(): Promise<User[]> {
   }
 }
 
-export default async function UsersPage() {
-  let users: User[]
-  let error: string | null = null
+export default function UsersPage() {
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  try {
-    users = await getUsers()
-  } catch (err) {
-    error = err instanceof Error ? err.message : 'Bilinmeyen hata'
-    users = []
+  // Server-side data fetching için useEffect
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const usersData = await getUsers()
+        setUsers(usersData)
+        setLoading(false)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
+        setLoading(false)
+      }
+    }
+    loadUsers()
+  }, [])
+
+  async function suspendUser(userId: string) {
+    try {
+      const supabase = createServiceSupabaseClient()
+      const { error } = await supabase.from('users').update({ status: 'suspended' }).eq('id', userId)
+      
+      if (error) {
+        console.error('Kullanıcı askıya alınırken hata:', error)
+        return
+      }
+      
+      // UI'yi güncelle
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, status: 'suspended' } : user
+      ))
+    } catch (error) {
+      console.error('Kullanıcı askıya alınırken genel hata:', error)
+    }
+  }
+
+  async function unsuspendUser(userId: string) {
+    try {
+      const supabase = createServiceSupabaseClient()
+      const { error } = await supabase.from('users').update({ status: 'active' }).eq('id', userId)
+      
+      if (error) {
+        console.error('Kullanıcı askıdan çıkarılırken hata:', error)
+        return
+      }
+      
+      // UI'yi güncelle
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, status: 'active' } : user
+      ))
+    } catch (error) {
+      console.error('Kullanıcı askıdan çıkarılırken genel hata:', error)
+    }
+  }
+
+  async function deleteUser(userId: string) {
+    if (!confirm('Bu kullanıcıyı silmek istediğinizden emin misiniz?')) {
+      return
+    }
+    
+    try {
+      const supabase = createServiceSupabaseClient()
+      const { error } = await supabase.from('users').delete().eq('id', userId)
+      
+      if (error) {
+        console.error('Kullanıcı silinirken hata:', error)
+        return
+      }
+      
+      // UI'den kaldır
+      setUsers(users.filter(user => user.id !== userId))
+    } catch (error) {
+      console.error('Kullanıcı silinirken genel hata:', error)
+    }
+  }
+
+  if (loading) {
+    return (
+      <main>
+        <h1>Kullanıcı Yönetimi</h1>
+        <div className="flex items-center justify-center py-8">
+          <div className="text-lg">Kullanıcılar yükleniyor...</div>
+        </div>
+      </main>
+    )
   }
 
   if (error) {
@@ -178,8 +260,29 @@ export default async function UsersPage() {
                     </div>
                   </td>
                   <td>
-                    <div className="text-sm text-muted">
-                      {user.status === 'suspended' ? 'Askıda' : 'Aktif'}
+                    <div className="flex gap-2">
+                      {user.status === 'suspended' ? (
+                        <button 
+                          onClick={() => unsuspendUser(user.id)}
+                          className="btn btn-success btn-sm"
+                        >
+                          Askıdan Çıkar
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => suspendUser(user.id)}
+                          className="btn btn-warning btn-sm"
+                        >
+                          Askıya Al
+                        </button>
+                      )}
+                      
+                      <button 
+                        onClick={() => deleteUser(user.id)}
+                        className="btn btn-danger btn-sm"
+                      >
+                        Sil
+                      </button>
                     </div>
                   </td>
                 </tr>

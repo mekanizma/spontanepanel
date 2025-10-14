@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
 interface VerificationRequest {
   id: string
@@ -17,6 +18,45 @@ interface VerificationRequest {
   }[] | null
 }
 
+async function getVerificationRequests(): Promise<VerificationRequest[]> {
+  console.log('✅ Verification Requests yükleniyor...')
+  
+  const supabase = createServiceSupabaseClient()
+
+  try {
+    console.log('✅ Verification Requests tablosundan veri çekiliyor...')
+    const { data: requests, error } = await supabase
+      .from('user_verification')
+      .select(`
+        id,
+        user_id,
+        verification_type,
+        verification_data,
+        is_verified,
+        created_at,
+        verified_at,
+        users!user_id (
+          username,
+          full_name,
+          profile_image_url
+        )
+      `)
+      .order('created_at', { ascending: false })
+
+    console.log('✅ Verification Requests sonucu:', { count: requests?.length, error })
+
+    if (error) {
+      console.error('Doğrulama istekleri yüklenirken hata:', error)
+      throw new Error('Doğrulama istekleri yüklenirken hata oluştu')
+    }
+
+    return requests || []
+  } catch (error) {
+    console.error('Doğrulama istekleri yüklenirken genel hata:', error)
+    throw new Error('Doğrulama istekleri yüklenirken hata oluştu')
+  }
+}
+
 export default function VerificationPage() {
   const [requests, setRequests] = useState<VerificationRequest[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,60 +64,21 @@ export default function VerificationPage() {
 
   useEffect(() => {
     async function loadVerificationRequests() {
-      console.log('✅ Verification Requests yükleniyor...')
-      
-      // Service Role Key kullan
-      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
-      const supabase = await getServiceSupabaseClient()
-
       try {
-        console.log('✅ Verification Requests tablosundan veri çekiliyor...')
-        const { data: requests, error } = await supabase
-          .from('user_verification')
-          .select(`
-            id,
-            user_id,
-            verification_type,
-            verification_data,
-            is_verified,
-            created_at,
-            verified_at,
-            users!user_id (
-              username,
-              full_name,
-              profile_image_url
-            )
-          `)
-          .order('created_at', { ascending: false })
-
-        console.log('✅ Verification Requests sonucu:', { count: requests?.length, error })
-
-        if (error) {
-          console.error('Doğrulama istekleri yüklenirken hata:', error)
-          setError('Doğrulama istekleri yüklenirken hata oluştu')
-          setLoading(false)
-          return
-        }
-
-        setRequests(requests || [])
+        const requestsData = await getVerificationRequests()
+        setRequests(requestsData)
         setLoading(false)
-      } catch (error) {
-        console.error('Doğrulama istekleri yüklenirken genel hata:', error)
-        setError('Doğrulama istekleri yüklenirken hata oluştu')
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
         setLoading(false)
       }
     }
-
     loadVerificationRequests()
   }, [])
 
   async function approveVerification(requestId: string) {
     try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const supabase = createServiceSupabaseClient()
       
       // Önce verification request'i onayla
       const { error: verificationError } = await supabase
@@ -122,11 +123,7 @@ export default function VerificationPage() {
 
   async function rejectVerification(requestId: string) {
     try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const supabase = createServiceSupabaseClient()
       const { error } = await supabase
         .from('user_verification')
         .delete()

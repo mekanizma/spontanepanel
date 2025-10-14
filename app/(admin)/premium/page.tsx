@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
 interface PremiumUser {
   id: string
@@ -13,6 +14,42 @@ interface PremiumUser {
   profile_image_url: string | null
 }
 
+async function getPremiumUsers(): Promise<PremiumUser[]> {
+  console.log('⭐ Premium Users yükleniyor...')
+  
+  const supabase = createServiceSupabaseClient()
+
+  try {
+    console.log('⭐ Premium Users tablosundan veri çekiliyor...')
+    const { data: premiumUsers, error } = await supabase
+      .from('users')
+      .select(`
+        id,
+        username,
+        email,
+        full_name,
+        is_premium,
+        premium_expires_at,
+        created_at,
+        profile_image_url
+      `)
+      .eq('is_premium', true)
+      .order('created_at', { ascending: false })
+
+    console.log('⭐ Premium Users sonucu:', { count: premiumUsers?.length, error })
+
+    if (error) {
+      console.error('Premium kullanıcılar yüklenirken hata:', error)
+      throw new Error('Premium kullanıcılar yüklenirken hata oluştu')
+    }
+
+    return premiumUsers || []
+  } catch (error) {
+    console.error('Premium kullanıcılar yüklenirken genel hata:', error)
+    throw new Error('Premium kullanıcılar yüklenirken hata oluştu')
+  }
+}
+
 export default function PremiumPage() {
   const [premiumUsers, setPremiumUsers] = useState<PremiumUser[]>([])
   const [loading, setLoading] = useState(true)
@@ -20,47 +57,15 @@ export default function PremiumPage() {
 
   useEffect(() => {
     async function loadPremiumUsers() {
-      console.log('⭐ Premium Users yükleniyor...')
-      
-      // Service Role Key kullan
-      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
-      const supabase = await getServiceSupabaseClient()
-
       try {
-        console.log('⭐ Premium Users tablosundan veri çekiliyor...')
-        const { data: premiumUsers, error } = await supabase
-          .from('users')
-          .select(`
-            id,
-            username,
-            email,
-            full_name,
-            is_premium,
-            premium_expires_at,
-            created_at,
-            profile_image_url
-          `)
-          .eq('is_premium', true)
-          .order('created_at', { ascending: false })
-
-        console.log('⭐ Premium Users sonucu:', { count: premiumUsers?.length, error })
-
-        if (error) {
-          console.error('Premium kullanıcılar yüklenirken hata:', error)
-          setError('Premium kullanıcılar yüklenirken hata oluştu')
-          setLoading(false)
-          return
-        }
-
-        setPremiumUsers(premiumUsers || [])
+        const premiumUsersData = await getPremiumUsers()
+        setPremiumUsers(premiumUsersData)
         setLoading(false)
-      } catch (error) {
-        console.error('Premium kullanıcılar yüklenirken genel hata:', error)
-        setError('Premium kullanıcılar yüklenirken hata oluştu')
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
         setLoading(false)
       }
     }
-
     loadPremiumUsers()
   }, [])
 
@@ -70,11 +75,7 @@ export default function PremiumPage() {
     }
     
     try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const supabase = createServiceSupabaseClient()
       const { error } = await supabase
         .from('users')
         .update({ 

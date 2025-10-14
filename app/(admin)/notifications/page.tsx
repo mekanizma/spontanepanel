@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createServiceSupabaseClient } from '@/lib/supabaseService'
 
 interface Notification {
   id: string
@@ -17,6 +18,45 @@ interface Notification {
   }[] | null
 }
 
+async function getNotifications(): Promise<Notification[]> {
+  console.log('🔔 Notifications yükleniyor...')
+  
+  const supabase = createServiceSupabaseClient()
+
+  try {
+    console.log('🔔 Notifications tablosundan veri çekiliyor...')
+    const { data: notifications, error } = await supabase
+      .from('notifications')
+      .select(`
+        id,
+        user_id,
+        title,
+        message,
+        type,
+        is_read,
+        created_at,
+        users!user_id (
+          username,
+          full_name,
+          profile_image_url
+        )
+      `)
+      .order('created_at', { ascending: false })
+
+    console.log('🔔 Notifications sonucu:', { count: notifications?.length, error })
+
+    if (error) {
+      console.error('Bildirimler yüklenirken hata:', error)
+      throw new Error('Bildirimler yüklenirken hata oluştu')
+    }
+
+    return notifications || []
+  } catch (error) {
+    console.error('Bildirimler yüklenirken genel hata:', error)
+    throw new Error('Bildirimler yüklenirken hata oluştu')
+  }
+}
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
@@ -24,60 +64,21 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     async function loadNotifications() {
-      console.log('🔔 Notifications yükleniyor...')
-      
-      // Service Role Key kullan
-      const { getServiceSupabaseClient } = await import('@/lib/supabaseService')
-      const supabase = await getServiceSupabaseClient()
-
       try {
-        console.log('🔔 Notifications tablosundan veri çekiliyor...')
-        const { data: notifications, error } = await supabase
-          .from('notifications')
-          .select(`
-            id,
-            user_id,
-            title,
-            message,
-            type,
-            is_read,
-            created_at,
-            users!user_id (
-              username,
-              full_name,
-              profile_image_url
-            )
-          `)
-          .order('created_at', { ascending: false })
-
-        console.log('🔔 Notifications sonucu:', { count: notifications?.length, error })
-
-        if (error) {
-          console.error('Bildirimler yüklenirken hata:', error)
-          setError('Bildirimler yüklenirken hata oluştu')
-          setLoading(false)
-          return
-        }
-
-        setNotifications(notifications || [])
+        const notificationsData = await getNotifications()
+        setNotifications(notificationsData)
         setLoading(false)
-      } catch (error) {
-        console.error('Bildirimler yüklenirken genel hata:', error)
-        setError('Bildirimler yüklenirken hata oluştu')
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
         setLoading(false)
       }
     }
-
     loadNotifications()
   }, [])
 
   async function markAsRead(notificationId: string) {
     try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const supabase = createServiceSupabaseClient()
       const { error } = await supabase
         .from('notifications')
         .update({ is_read: true })
@@ -103,11 +104,7 @@ export default function NotificationsPage() {
     }
     
     try {
-      const { createClient } = await import('@supabase/supabase-js')
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-      )
+      const supabase = createServiceSupabaseClient()
       const { error } = await supabase
         .from('notifications')
         .delete()
