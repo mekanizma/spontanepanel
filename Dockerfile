@@ -34,8 +34,8 @@ COPY --from=builder /app/.next/static ./.next/static/
 # Projede public klasörü yoksa kopyalamaya gerek yok
 
 # Expose Next.js port
-ENV PORT=3001
-EXPOSE 3001
+ENV PORT=80
+EXPOSE 80
 
 USER nextjs
 
