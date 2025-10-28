@@ -28,8 +28,8 @@ RUN addgroup -S nextjs && adduser -S nextjs -G nextjs
 
 # Copy standalone build
 COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public ./public 2>/dev/null || true
+COPY --from=builder /app/.next/static ./.next/static/
+COPY --from=builder /app/public ./public/
 
 # Expose Next.js port
 ENV PORT=3001
