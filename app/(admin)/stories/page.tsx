@@ -57,7 +57,6 @@ async function getStories(): Promise<Story[]> {
     
     // Önce users tablosunu dene
     let usersData: any[] = []
-    let usersError: any = null
     
     const { data: usersResult, error: usersErr } = await supabase
       .from('users')
