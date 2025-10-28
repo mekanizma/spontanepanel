@@ -32,7 +32,8 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public 2>/dev/null || true
 
 # Expose Next.js port
-EXPOSE 3000
+ENV PORT=3001
+EXPOSE 3001
 
 USER nextjs
 
