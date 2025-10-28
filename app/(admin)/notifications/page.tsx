@@ -12,45 +12,24 @@ interface Notification {
   is_read: boolean
   created_at: string
   users: {
-    username: string
-    full_name: string
+    username: string | null
+    full_name: string | null
+    email: string | null
     profile_image_url: string | null
-  }[] | null
+  } | null
 }
 
 async function getNotifications(): Promise<Notification[]> {
   console.log('🔔 Notifications yükleniyor...')
   
-  const supabase = createClientComponentClient()
-
   try {
-    console.log('🔔 Notifications tablosundan veri çekiliyor...')
-    const { data: notifications, error } = await supabase
-      .from('notifications')
-      .select(`
-        id,
-        user_id,
-        title,
-        message,
-        type,
-        is_read,
-        created_at,
-        users!user_id (
-          username,
-          full_name,
-          profile_image_url
-        )
-      `)
-      .order('created_at', { ascending: false })
-
-    console.log('🔔 Notifications sonucu:', { count: notifications?.length, error })
-
-    if (error) {
-      console.error('Bildirimler yüklenirken hata:', error)
-      throw new Error('Bildirimler yüklenirken hata oluştu')
+    const res = await fetch('/api/admin/notifications', { cache: 'no-store' })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || `HTTP ${res.status}`)
     }
-
-    return notifications || []
+    const body = await res.json()
+    return body.notifications || []
   } catch (error) {
     console.error('Bildirimler yüklenirken genel hata:', error)
     throw new Error('Bildirimler yüklenirken hata oluştu')
@@ -89,36 +68,22 @@ export default function NotificationsPage() {
     }
 
     try {
-      const supabase = createClientComponentClient()
-      
-      // Tüm kullanıcılara bildirim gönder
-      const { data: users } = await supabase.from('users').select('id')
-      
-      if (users && users.length > 0) {
-        const notificationPromises = users.map(user => 
-          supabase.from('notifications').insert({
-            user_id: user.id,
-            title: sendForm.title,
-            message: sendForm.message,
-            type: sendForm.type,
-            is_read: false
-          })
-        )
-        
-        await Promise.all(notificationPromises)
-        
-        // Formu sıfırla
-        setSendForm({ title: '', message: '', type: 'announcement' })
-        setShowSendForm(false)
-        
-        // Bildirimleri yeniden yükle
-        const notificationsData = await getNotifications()
-        setNotifications(notificationsData)
-        
-        alert(`Başarıyla ${users.length} kullanıcıya bildirim gönderildi!`)
-      } else {
-        alert('Gönderilecek kullanıcı bulunamadı')
+      const res = await fetch('/api/admin/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sendForm)
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(body.error || 'Bildirim gönderilirken hata oluştu')
+        return
       }
+      // Formu sıfırla ve listeyi yenile
+      setSendForm({ title: '', message: '', type: 'announcement' })
+      setShowSendForm(false)
+      const notificationsData = await getNotifications()
+      setNotifications(notificationsData)
+      alert(`Başarıyla ${body.sent || 0} kullanıcıya bildirim gönderildi!`)
     } catch (error) {
       console.error('Bildirim gönderilirken hata:', error)
       alert('Bildirim gönderilirken hata oluştu')
@@ -265,21 +230,20 @@ export default function NotificationsPage() {
                   <td>
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {notification.users?.[0]?.profile_image_url ? (
+                        {notification.users?.profile_image_url ? (
                           <img 
-                            src={notification.users[0].profile_image_url} 
-                            alt={notification.users[0].username}
+                            src={notification.users.profile_image_url || ''} 
+                            alt={notification.users?.username || ''}
                             className="w-full h-full object-cover"
                           />
                         ) : (
                           <span className="text-sm font-semibold">
-                            {notification.users?.[0]?.username?.charAt(0).toUpperCase() || 'U'}
+                            {notification.users?.username?.charAt(0).toUpperCase() || 'U'}
                           </span>
                         )}
                       </div>
-                      <div>
-                        <div className="font-medium">{notification.users?.[0]?.full_name || notification.users?.[0]?.username}</div>
-                        <div className="text-sm text-muted">@{notification.users?.[0]?.username}</div>
+                      <div className="whitespace-nowrap">
+                        <div className="font-medium truncate max-w-[220px]">{notification.users?.full_name || '—'}</div>
                       </div>
                     </div>
                   </td>

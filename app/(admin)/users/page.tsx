@@ -1,6 +1,5 @@
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import UserActions from './UserActions'
 import { useState, useEffect } from 'react'
 
@@ -19,64 +18,58 @@ interface User {
 }
 
 async function getUsers(): Promise<User[]> {
-  console.log('👥 Users yükleniyor...')
-  
-  const supabase = createClientComponentClient()
-  
   try {
-    console.log('👥 Users tablosundan veri çekiliyor...')
-    
-    const { data: users, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        username,
-        email,
-        full_name,
-        created_at,
-        is_premium,
-        is_verified,
-        status,
-        premium_expires_at,
-        profile_image_url
-      `)
-      .order('created_at', { ascending: false })
-
-    console.log('👥 Users sonucu:', { count: users?.length, error })
-
-    if (error) {
-      console.error('Kullanıcılar yüklenirken hata:', error)
-      throw new Error('Kullanıcılar yüklenirken hata oluştu')
+    const res = await fetch('/api/admin/users', { cache: 'no-store' })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || `HTTP ${res.status}`)
     }
-
-    // Her kullanıcı için etkinlik sayısını al
-    const usersWithEventCounts = await Promise.all(
-      (users || []).map(async (user) => {
-        try {
-          const { count: eventCount } = await supabase
-            .from('events')
-            .select('*', { count: 'exact', head: true })
-            .eq('creator_id', user.id)
-          
-          return {
-            ...user,
-            event_count: eventCount || 0
-          }
-        } catch (error) {
-          console.error(`Kullanıcı ${user.id} için etkinlik sayısı alınırken hata:`, error)
-          return {
-            ...user,
-            event_count: 0
-          }
-        }
-      })
-    )
-
-    return usersWithEventCounts
+    const body = await res.json()
+    return body.users || []
   } catch (error) {
     console.error('Kullanıcılar yüklenirken genel hata:', error)
     throw new Error('Kullanıcılar yüklenirken hata oluştu')
   }
+}
+
+// İsim temizleme fonksiyonu
+function getCleanUserName(user: User): string {
+  // Eğer full_name varsa direkt kullan
+  if (user.full_name) {
+    // Full name'deki tüm sayıları ve gereksiz karakterleri temizle
+    let cleanName = user.full_name;
+    // Başındaki ve sonundaki sayıları temizle
+    cleanName = cleanName.replace(/^\d+\s*/, '').replace(/\s*\d+$/, '');
+    // Kelimeler arasındaki tek başına sayıları temizle (örn: "Kart 2" -> "Kart")
+    cleanName = cleanName.replace(/\s+\d+\s*/g, ' ');
+    return cleanName.trim();
+  }
+  
+  // Username'i temizle ve isim/soyisim gibi davran
+  let username = user.username;
+  
+  // Başındaki sayıları, underscore'ları ve özel karakterleri temizle
+  username = username.replace(/^[0-9_$]+/, '');
+  
+  // Sonundaki sayılar ve karakterleri temizle
+  username = username.replace(/[0-9_]+$/, '');
+  
+  // Eğer "user_" ile başlıyorsa, onu da temizle
+  username = username.replace(/^user_/, '');
+  
+  // Underscore'ları boşlukla değiştir
+  username = username.replace(/_/g, ' ');
+  
+  // Tek başına sayıları temizle
+  username = username.replace(/\s+\d+\s*/g, ' ');
+  
+  // Trim yap ve büyük harfle başlat
+  username = username.trim();
+  if (username) {
+    username = username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
+  }
+  
+  return username || 'Kullanıcı';
 }
 
 export default function UsersPage() {
@@ -132,77 +125,75 @@ export default function UsersPage() {
   }
 
   return (
-    <main>
-      <h1>Kullanıcı Yönetimi</h1>
+    <main className="p-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Kullanıcı Yönetimi</h1>
+        <p className="text-gray-600 mt-1">Tüm kullanıcıları görüntüle ve yönet</p>
+      </div>
       
-      <div className="card mt-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="table">
-            <thead>
+          <table className="table w-full">
+            <thead className="bg-gray-50">
               <tr>
-                <th>Kullanıcı</th>
-                <th>E-posta</th>
-                <th>Kayıt Tarihi</th>
-                <th>Etkinlik Sayısı</th>
-                <th>Durum</th>
-                <th>Aksiyonlar</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Kullanıcı</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">E-posta</th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Kayıt Tarihi</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Etkinlik</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Durum</th>
+                <th className="px-6 py-4 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Aksiyonlar</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-200">
               {users.map((user) => (
-                <tr key={user.id}>
-                  <td>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {user.profile_image_url ? (
-                          <img 
-                            src={user.profile_image_url} 
-                            alt={user.username}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-lg font-semibold">
-                            {user.username?.charAt(0).toUpperCase() || 'U'}
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-semibold">{user.full_name || user.username}</div>
-                        <div className="text-sm text-muted">@{user.username}</div>
-                        <div className="text-xs text-muted">ID: {user.id}</div>
-                      </div>
+                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="font-semibold text-gray-900">
+                      {getCleanUserName(user)}
                     </div>
                   </td>
-                  <td>
-                    <div className="text-sm">{user.email}</div>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-600">{user.email}</div>
                   </td>
-                  <td>
-                    <div className="text-sm">
-                      {new Date(user.created_at).toLocaleDateString('tr-TR')}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-600">
+                      {new Date(user.created_at).toLocaleDateString('tr-TR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      })}
                     </div>
                   </td>
-                  <td>
-                    <div className="text-center">
-                      <span className="badge badge-info">{user.event_count}</span>
-                    </div>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                      {user.event_count}
+                    </span>
                   </td>
-                  <td>
-                    <div className="flex flex-col gap-1">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex flex-wrap gap-1 justify-center">
                       {user.is_premium && (
-                        <span className="badge badge-success">Premium</span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Premium
+                        </span>
                       )}
                       {user.is_verified && (
-                        <span className="badge badge-info">Doğrulanmış</span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Doğrulanmış
+                        </span>
                       )}
                       {user.status === 'suspended' && (
-                        <span className="badge badge-error">Askıda</span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Askıda
+                        </span>
                       )}
                       {user.status === 'active' && !user.is_premium && !user.is_verified && (
-                        <span className="badge badge-warning">Normal</span>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Normal
+                        </span>
                       )}
                     </div>
                   </td>
-                  <td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
                     <UserActions user={user} onUpdate={refreshUsers} />
                   </td>
                 </tr>

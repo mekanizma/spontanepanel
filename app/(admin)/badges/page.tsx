@@ -1,6 +1,5 @@
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useState, useEffect } from 'react'
 
 interface Badge {
@@ -32,67 +31,31 @@ interface UserBadge {
 async function getBadges(): Promise<Badge[]> {
   console.log('🏆 Badges yükleniyor...')
   
-  const supabase = createClientComponentClient()
-
   try {
-    console.log('🏆 Badges tablosundan veri çekiliyor...')
-    const { data: badges, error } = await supabase
-      .from('badges')
-      .select(`
-        id,
-        name,
-        description,
-        icon_url,
-        color,
-        created_at
-      `)
-      .order('created_at', { ascending: false })
-
-    console.log('🏆 Badges sonucu:', { count: badges?.length, error })
-
-    if (error) {
-      console.error('Rozetler yüklenirken hata:', error)
-      // Badges tablosu yoksa boş array döndür
-      if (error.code === 'PGRST205') {
-        console.log('⚠️ Badges tablosu bulunamadı, boş array döndürülüyor')
-        return []
-      }
-      throw new Error('Rozetler yüklenirken hata oluştu')
+    const res = await fetch('/api/admin/badges', { cache: 'no-store' })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || `HTTP ${res.status}`)
     }
-
-    return badges || []
+    const body = await res.json()
+    console.log('📊 API\'den gelen rozetler:', body.badges?.length || 0, 'adet')
+    console.log('📋 Rozet isimleri:', body.badges?.map((b: any) => b.name) || [])
+    return body.badges || []
   } catch (error) {
-    console.error('Rozetler yüklenirken genel hata:', error)
-    // Badges tablosu yoksa boş array döndür
-    if (error instanceof Error && error.message.includes('PGRST205')) {
-      console.log('⚠️ Badges tablosu bulunamadı, boş array döndürülüyor')
-      return []
-    }
-    throw new Error('Rozetler yüklenirken hata oluştu')
+    console.error('❌ Rozetler yüklenirken genel hata:', error)
+    return []
   }
 }
 
 async function getAllUsers(): Promise<User[]> {
-  const supabase = createClientComponentClient()
-  
   try {
-    const { data: users, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        username,
-        email,
-        full_name,
-        profile_image_url
-      `)
-      .order('username', { ascending: true })
-
-    if (error) {
-      console.error('Kullanıcılar yüklenirken hata:', error)
-      throw new Error('Kullanıcılar yüklenirken hata oluştu')
+    const res = await fetch('/api/admin/users/all', { cache: 'no-store' })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || `HTTP ${res.status}`)
     }
-
-    return users || []
+    const body = await res.json()
+    return body.users || []
   } catch (error) {
     console.error('Kullanıcılar yüklenirken genel hata:', error)
     throw new Error('Kullanıcılar yüklenirken hata oluştu')
@@ -100,53 +63,19 @@ async function getAllUsers(): Promise<User[]> {
 }
 
 async function getUserBadges(): Promise<UserBadge[]> {
-  const supabase = createClientComponentClient()
-  
   try {
-    const { data: userBadges, error } = await supabase
-      .from('user_badges')
-      .select(`
-        id,
-        user_id,
-        badge_id,
-        assigned_at,
-        badges!badge_id (
-          id,
-          name,
-          description,
-          icon_url,
-          color,
-          created_at
-        ),
-        users!user_id (
-          id,
-          username,
-          email,
-          full_name,
-          profile_image_url
-        )
-      `)
-      .order('assigned_at', { ascending: false })
-
-    if (error) {
-      console.error('Kullanıcı rozetleri yüklenirken hata:', error)
-      // User badges tablosu yoksa boş array döndür
-      if (error.code === 'PGRST205') {
-        console.log('⚠️ User badges tablosu bulunamadı, boş array döndürülüyor')
-        return []
-      }
-      throw new Error('Kullanıcı rozetleri yüklenirken hata oluştu')
-    }
-
-    return userBadges || []
-  } catch (error) {
-    console.error('Kullanıcı rozetleri yüklenirken genel hata:', error)
-    // User badges tablosu yoksa boş array döndür
-    if (error instanceof Error && error.message.includes('PGRST205')) {
-      console.log('⚠️ User badges tablosu bulunamadı, boş array döndürülüyor')
+    const res = await fetch('/api/admin/badges/user-badges', { cache: 'no-store' })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      console.error('❌ User badges API hatası:', body.error || `HTTP ${res.status}`)
       return []
     }
-    throw new Error('Kullanıcı rozetleri yüklenirken hata oluştu')
+    const body = await res.json()
+    console.log('✅ User badges verisi:', body.userBadges?.length || 0, 'adet')
+    return body.userBadges || []
+  } catch (error) {
+    console.error('❌ Kullanıcı rozetleri yüklenirken genel hata:', error)
+    return []
   }
 }
 
@@ -168,11 +97,24 @@ export default function BadgesPage() {
           getAllUsers(),
           getUserBadges()
         ])
+        console.log('✅ Badges yüklendi:', badgesData.length, 'adet')
+        console.log('✅ Users yüklendi:', usersData.length, 'adet')
+        console.log('✅ User badges yüklendi:', userBadgesData.length, 'adet')
+        
         setBadges(badgesData)
         setUsers(usersData)
-        setUserBadges(userBadgesData)
+        
+        // Sıralama
+        const sortedBadges = [...userBadgesData].sort((a, b) => {
+          const aDate = a.assigned_at ? new Date(a.assigned_at).getTime() : 0
+          const bDate = b.assigned_at ? new Date(b.assigned_at).getTime() : 0
+          return bDate - aDate
+        })
+        
+        setUserBadges(sortedBadges)
         setLoading(false)
       } catch (err) {
+        console.error('❌ Load data hatası:', err)
         setError(err instanceof Error ? err.message : 'Bilinmeyen hata')
         setLoading(false)
       }
@@ -187,25 +129,33 @@ export default function BadgesPage() {
     }
 
     try {
-      const supabase = createClientComponentClient()
-      
-      const { error } = await supabase
-        .from('user_badges')
-        .insert({
+      const res = await fetch('/api/admin/badges/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           user_id: selectedUser,
-          badge_id: selectedBadge,
-          assigned_at: new Date().toISOString()
+          badge_id: selectedBadge
         })
-      
-      if (error) {
-        console.error('Rozet atanırken hata:', error)
-        alert('Rozet atanırken hata oluştu')
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || 'Rozet atanırken hata oluştu')
         return
       }
       
       // Listeyi yenile
       const userBadgesData = await getUserBadges()
-      setUserBadges(userBadgesData)
+      console.log('🔄 Yeni user badges data:', userBadgesData.length)
+      
+      // Sıralama
+      const sortedBadges = userBadgesData.sort((a, b) => {
+        const aDate = a.assigned_at ? new Date(a.assigned_at).getTime() : 0
+        const bDate = b.assigned_at ? new Date(b.assigned_at).getTime() : 0
+        return bDate - aDate
+      })
+      
+      setUserBadges(sortedBadges)
       
       // Formu sıfırla
       setSelectedUser('')
@@ -225,21 +175,27 @@ export default function BadgesPage() {
     }
     
     try {
-      const supabase = createClientComponentClient()
-      const { error } = await supabase
-        .from('user_badges')
-        .delete()
-        .eq('id', userBadgeId)
-      
-      if (error) {
-        console.error('Rozet kaldırılırken hata:', error)
-        alert('Rozet kaldırılırken hata oluştu')
+      const res = await fetch(`/api/admin/badges/remove?id=${userBadgeId}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || 'Rozet kaldırılırken hata oluştu')
         return
       }
       
       // Listeyi yenile
       const userBadgesData = await getUserBadges()
-      setUserBadges(userBadgesData)
+      
+      // Sıralama
+      const sortedBadges = userBadgesData.sort((a, b) => {
+        const aDate = a.assigned_at ? new Date(a.assigned_at).getTime() : 0
+        const bDate = b.assigned_at ? new Date(b.assigned_at).getTime() : 0
+        return bDate - aDate
+      })
+      
+      setUserBadges(sortedBadges)
       
       alert('Rozet başarıyla kaldırıldı!')
     } catch (error) {
@@ -311,11 +267,15 @@ export default function BadgesPage() {
                 className="input w-full"
               >
                 <option value="">Rozet seçin...</option>
-                {badges.map((badge) => (
-                  <option key={badge.id} value={badge.id}>
-                    {badge.name} - {badge.description}
-                  </option>
-                ))}
+                {badges.length === 0 ? (
+                  <option value="" disabled>Henüz rozet yok - Önce rozet oluşturun</option>
+                ) : (
+                  badges.map((badge) => (
+                    <option key={badge.id} value={badge.id}>
+                      {badge.name} - {badge.description}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
             <div className="flex gap-2">
@@ -336,37 +296,6 @@ export default function BadgesPage() {
         )}
       </div>
       
-      {/* Mevcut Rozetler */}
-      <div className="card mt-6">
-        <h2 className="text-xl font-semibold mb-4">Mevcut Rozetler</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {badges.map((badge) => (
-            <div key={badge.id} className="border rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                  {badge.icon_url ? (
-                    <img 
-                      src={badge.icon_url} 
-                      alt={badge.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-lg">🏆</span>
-                  )}
-                </div>
-                <div>
-                  <div className="font-semibold">{badge.name}</div>
-                  <div className="text-sm text-muted">{badge.description}</div>
-                </div>
-              </div>
-              <div className="text-xs text-muted">
-                Renk: <span className="badge" style={{backgroundColor: badge.color}}>{badge.color}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      
       {/* Kullanıcı Rozetleri */}
       <div className="card mt-6">
         <h2 className="text-xl font-semibold mb-4">Kullanıcı Rozetleri</h2>
@@ -384,24 +313,9 @@ export default function BadgesPage() {
               {userBadges.map((userBadge) => (
                 <tr key={userBadge.id}>
                   <td>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {userBadge.users?.[0]?.profile_image_url ? (
-                          <img 
-                            src={userBadge.users[0].profile_image_url} 
-                            alt={userBadge.users[0].username}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-sm font-semibold">
-                            {userBadge.users?.[0]?.username?.charAt(0).toUpperCase() || 'U'}
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-medium">{userBadge.users?.[0]?.full_name || userBadge.users?.[0]?.username}</div>
-                        <div className="text-sm text-muted">@{userBadge.users?.[0]?.username}</div>
-                      </div>
+                    <div>
+                      <div className="font-medium">{userBadge.users?.[0]?.full_name || userBadge.users?.[0]?.username}</div>
+                      <div className="text-sm text-muted">@{userBadge.users?.[0]?.username}</div>
                     </div>
                   </td>
                   <td>
@@ -425,7 +339,7 @@ export default function BadgesPage() {
                   </td>
                   <td>
                     <div className="text-sm">
-                      {new Date(userBadge.assigned_at).toLocaleDateString('tr-TR')}
+                      {userBadge.assigned_at ? new Date(userBadge.assigned_at).toLocaleDateString('tr-TR') : '-'}
                     </div>
                   </td>
                   <td>

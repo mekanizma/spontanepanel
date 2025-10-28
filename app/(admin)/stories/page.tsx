@@ -6,9 +6,8 @@ import { useState, useEffect } from 'react'
 interface Story {
   id: string
   user_id: string
-  content: string
+  caption: string | null
   image_url: string | null
-  video_url: string | null
   created_at: string
   expires_at: string | null
   is_active: boolean
@@ -28,24 +27,15 @@ async function getStories(): Promise<Story[]> {
     console.log('📖 Stories tablosundan veri çekiliyor...')
     const { data: stories, error } = await supabase
       .from('stories')
-      .select(`
-        id,
-        user_id,
-        content,
-        image_url,
-        video_url,
-        created_at,
-        expires_at,
-        is_active,
-        users!user_id (
-          username,
-          full_name,
-          profile_image_url
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
 
     console.log('📖 Stories sonucu:', { count: stories?.length, error })
+    
+    // İlk story'nin tüm sütunlarını logla
+    if (stories && stories.length > 0) {
+      console.log('📝 İlk story örneği:', stories[0])
+    }
 
     if (error) {
       console.error('Hikayeler yüklenirken hata:', error)
@@ -57,7 +47,65 @@ async function getStories(): Promise<Story[]> {
       throw new Error('Hikayeler yüklenirken hata oluştu')
     }
 
-    return stories || []
+    if (!stories || stories.length === 0) {
+      return []
+    }
+
+    // Kullanıcı bilgilerini ayrı olarak çek
+    const userIds = [...new Set(stories.map((s: any) => s.user_id))]
+    console.log('🔍 User IDs:', userIds)
+    
+    // Önce users tablosunu dene
+    let usersData: any[] = []
+    let usersError: any = null
+    
+    const { data: usersResult, error: usersErr } = await supabase
+      .from('users')
+      .select('*')
+      .in('id', userIds)
+
+    console.log('👥 Users data (users tablosu - tüm sütunlar):', usersResult)
+    console.log('❌ Users error (users tablosu):', usersErr)
+
+    if (usersResult && usersResult.length > 0) {
+      usersData = usersResult
+    } else {
+      // Eğer users tablosu boşsa profiles tablosunu dene
+      console.log('⚠️ Users tablosu boş veya hata var, profiles tablosu deneniyor...')
+      const { data: profilesResult, error: profilesErr } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', userIds)
+      
+      console.log('👥 Profiles data:', profilesResult)
+      console.log('❌ Profiles error:', profilesErr)
+      
+      if (profilesResult && profilesResult.length > 0) {
+        usersData = profilesResult
+      }
+    }
+
+    console.log('👥 Users data (final):', usersData)
+
+    // Kullanıcı bilgilerini map'e dönüştür
+    const usersMap = new Map()
+    if (usersData && usersData.length > 0) {
+      usersData.forEach((user: any) => {
+        usersMap.set(user.id, user)
+      })
+    }
+
+    console.log('🗺️ Users map:', Array.from(usersMap.entries()))
+
+    // Stories'lara user bilgilerini ekle
+    const storiesWithUsers = stories.map((story: any) => ({
+      ...story,
+      users: usersMap.has(story.user_id) ? [usersMap.get(story.user_id)] : null
+    }))
+
+    console.log('📝 Stories with users:', storiesWithUsers.slice(0, 3))
+
+    return storiesWithUsers
   } catch (error) {
     console.error('Hikayeler yüklenirken genel hata:', error)
     // Stories tablosu yoksa boş array döndür
@@ -200,28 +248,34 @@ export default function StoriesPage() {
                 <tr key={story.id}>
                   <td>
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {story.users?.[0]?.profile_image_url ? (
-                          <img 
-                            src={story.users[0].profile_image_url} 
-                            alt={story.users[0].username}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-sm font-semibold">
-                            {story.users?.[0]?.username?.charAt(0).toUpperCase() || 'U'}
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-medium">{story.users?.[0]?.full_name || story.users?.[0]?.username}</div>
-                        <div className="text-sm text-muted">@{story.users?.[0]?.username}</div>
-                      </div>
+                      {story.users && story.users[0] ? (
+                        <>
+                          <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                            {story.users[0].profile_image_url ? (
+                              <img 
+                                src={story.users[0].profile_image_url} 
+                                alt={story.users[0].username || 'User'}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-sm font-semibold">
+                                {story.users[0].username?.charAt(0).toUpperCase() || story.users[0].full_name?.charAt(0).toUpperCase() || 'U'}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-medium">{story.users[0].full_name || story.users[0].username || 'Kullanıcı'}</div>
+                            <div className="text-sm text-muted">@{story.users[0].username || 'unknown'}</div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-sm text-muted">Kullanıcı bulunamadı (ID: {story.user_id})</div>
+                      )}
                     </div>
                   </td>
                   <td>
                     <div className="text-sm max-w-48 truncate">
-                      {story.content || 'Metin içeriği yok'}
+                      {story.caption || 'Metin içeriği yok'}
                     </div>
                   </td>
                   <td>
@@ -229,10 +283,7 @@ export default function StoriesPage() {
                       {story.image_url && (
                         <span className="badge badge-info">Resim</span>
                       )}
-                      {story.video_url && (
-                        <span className="badge badge-warning">Video</span>
-                      )}
-                      {!story.image_url && !story.video_url && (
+                      {!story.image_url && (
                         <span className="badge badge-secondary">Metin</span>
                       )}
                     </div>
@@ -308,18 +359,18 @@ export default function StoriesPage() {
                     {selectedStory.users?.[0]?.profile_image_url ? (
                       <img 
                         src={selectedStory.users[0].profile_image_url} 
-                        alt={selectedStory.users[0].username}
+                        alt={selectedStory.users[0].username || 'User'}
                         className="w-full h-full object-cover"
                       />
                     ) : (
                       <span className="text-lg font-semibold">
-                        {selectedStory.users?.[0]?.username?.charAt(0).toUpperCase() || 'U'}
+                        {selectedStory.users?.[0]?.username?.charAt(0).toUpperCase() || selectedStory.users?.[0]?.full_name?.charAt(0).toUpperCase() || 'U'}
                       </span>
                     )}
                   </div>
                   <div>
-                    <div className="font-medium">{selectedStory.users?.[0]?.full_name || selectedStory.users?.[0]?.username}</div>
-                    <div className="text-sm text-muted">@{selectedStory.users?.[0]?.username}</div>
+                    <div className="font-medium">{selectedStory.users?.[0]?.full_name || selectedStory.users?.[0]?.username || 'Kullanıcı'}</div>
+                    <div className="text-sm text-muted">@{selectedStory.users?.[0]?.username || 'unknown'}</div>
                   </div>
                 </div>
               </div>
@@ -327,7 +378,7 @@ export default function StoriesPage() {
               <div>
                 <label className="block text-sm font-medium mb-1">İçerik</label>
                 <div className="bg-gray-100 p-3 rounded text-sm">
-                  {selectedStory.content || 'Metin içeriği yok'}
+                  {selectedStory.caption || 'Metin içeriği yok'}
                 </div>
               </div>
               
@@ -341,22 +392,6 @@ export default function StoriesPage() {
                       alt="Hikaye resmi"
                       className="max-w-full h-auto rounded"
                     />
-                  </div>
-                </div>
-              )}
-              
-              {/* Video varsa göster */}
-              {selectedStory.video_url && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Video</label>
-                  <div className="border rounded p-2">
-                    <video 
-                      src={selectedStory.video_url} 
-                      controls
-                      className="max-w-full h-auto rounded"
-                    >
-                      Tarayıcınız video oynatmayı desteklemiyor.
-                    </video>
                   </div>
                 </div>
               )}

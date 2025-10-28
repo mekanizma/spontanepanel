@@ -219,3 +219,4 @@ export default function VerificationModal({ request, onClose, onUpdate }: Verifi
     </div>
   )
 }
+

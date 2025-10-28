@@ -6,6 +6,14 @@ export async function middleware(req: NextRequest) {
   
   const res = NextResponse.next()
   
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error(
+      'Your project\'s URL and Key are required to create a Supabase client!\n\n' +
+      'Check your Supabase project\'s API settings to find these values\n\n' +
+      'https://supabase.com/dashboard/project/_/settings/api'
+    )
+  }
+  
   // Tüm cookie'leri logla
   console.log('🍪 Tüm cookie\'ler:', req.cookies.getAll().map(c => `${c.name}=${c.value.substring(0, 20)}...`))
   

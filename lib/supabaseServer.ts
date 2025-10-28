@@ -8,6 +8,14 @@ export async function getServerSupabase() {
   console.log('🔧 SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'var' : 'yok')
   console.log('🔧 SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'var' : 'yok')
   
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error(
+      'Your project\'s URL and Key are required to create a Supabase client!\n\n' +
+      'Check your Supabase project\'s API settings to find these values\n\n' +
+      'https://supabase.com/dashboard/project/_/settings/api'
+    )
+  }
+  
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -29,6 +37,13 @@ export async function getServerSupabase() {
 // Server Action / Route Handler için: cookie set/sil desteği
 export async function getActionSupabase() {
   const cookieStore = await cookies()
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error(
+      'Your project\'s URL and Key are required to create a Supabase client!\n\n' +
+      'Check your Supabase project\'s API settings to find these values\n\n' +
+      'https://supabase.com/dashboard/project/_/settings/api'
+    )
+  }
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

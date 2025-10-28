@@ -11,7 +11,18 @@ function LoginForm() {
   const [error, setError] = useState('')
   const searchParams = useSearchParams()
 // const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  
+  if (typeof window !== 'undefined') {
+    console.log('🌐 SUPABASE_URL (client):', supabaseUrl ? 'var' : 'yok')
+    console.log('🌐 SUPABASE_ANON_KEY (client):', supabaseAnon ? 'var' : 'yok')
+  }
+  
+  const supabase = createClientComponentClient({
+    supabaseUrl,
+    supabaseKey: supabaseAnon,
+  })
 
   useEffect(() => {
     const errorParam = searchParams.get('error')
@@ -30,6 +41,12 @@ function LoginForm() {
     setError('')
 
     try {
+      if (!supabaseUrl || !supabaseAnon) {
+        console.error('❌ Supabase env eksik: URL veya ANON KEY yok')
+        setError('Sunucu yapılandırması eksik (Supabase URL/Key). Lütfen yöneticinize bildirin.')
+        setLoading(false)
+        return
+      }
       console.log('🔐 Supabase auth çağrısı yapılıyor...')
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -98,29 +115,25 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center p-8">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="mx-auto w-20 h-20 bg-white rounded-full flex items-center justify-center mb-6 shadow-lg">
-            <svg className="w-10 h-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        {/* Logo and Header */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/20 shadow-xl mb-6">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">
-            Spontane Admin
-          </h1>
-          <p className="text-white/80">
-            Yönetim paneline hoş geldiniz
-          </p>
+          <h1 className="text-4xl font-bold text-white mb-2">Spontane Admin</h1>
+          <p className="text-white/90 text-lg">Yönetim paneline hoş geldiniz</p>
         </div>
 
         {/* Login Form */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-5">
             {/* Email Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 E-posta Adresi
               </label>
               <input
@@ -128,14 +141,14 @@ function LoginForm() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="admin@spontane.com"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-500 transition-colors"
+                placeholder="ornek@email.com"
               />
             </div>
 
             {/* Password Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Şifre
               </label>
               <input
@@ -143,15 +156,20 @@ function LoginForm() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-500 transition-colors"
                 placeholder="••••••••"
               />
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-600 text-sm">{error}</p>
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                <div className="flex items-center">
+                  <svg className="h-5 w-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-red-700 text-sm font-medium">{error}</p>
+                </div>
               </div>
             )}
 
@@ -159,16 +177,16 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-3.5 rounded-lg shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mt-6"
             >
               {loading ? (
-                <div className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                <>
+                  <svg className="animate-spin h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Giriş yapılıyor...
-                </div>
+                </>
               ) : (
                 'Giriş Yap'
               )}
@@ -176,8 +194,8 @@ function LoginForm() {
           </form>
 
           {/* Footer */}
-          <div className="mt-6 text-center">
-            <p className="text-gray-500 text-xs">
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <p className="text-center text-gray-500 text-sm">
               © 2024 Spontane. Tüm hakları saklıdır.
             </p>
           </div>
@@ -190,8 +208,8 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white"></div>
+      <div className="min-h-screen bg-gradient-to-b from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-white/20 border-t-white"></div>
       </div>
     }>
       <LoginForm />

@@ -1,4 +1,5 @@
 import { createServiceSupabaseClient } from '@/lib/supabaseService'
+import EventActions from './EventActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +28,9 @@ async function getEvents(): Promise<Event[]> {
 
   try {
     console.log('🎉 Events tablosundan veri çekiliyor...')
-    const { data: events, error } = await supabase
+    
+    // Önce events'i çek
+    const { data: events, error: eventsError } = await supabase
       .from('events')
       .select(`
         id,
@@ -39,23 +42,43 @@ async function getEvents(): Promise<Event[]> {
         image_url,
         creator_id,
         status,
-        created_at,
-        users!events_creator_id_fkey (
-          username,
-          full_name,
-          profile_image_url
-        )
+        created_at
       `)
       .order('created_at', { ascending: false })
 
-    console.log('🎉 Events sonucu:', { count: events?.length, error })
+    console.log('🎉 Events sonucu:', { count: events?.length, error: eventsError })
 
-    if (error) {
-      console.error('Etkinlikler yüklenirken hata:', error)
+    if (eventsError) {
+      console.error('Etkinlikler yüklenirken hata:', eventsError)
       throw new Error('Etkinlikler yüklenirken hata oluştu')
     }
 
-    return events || []
+    if (!events || events.length === 0) {
+      return []
+    }
+
+    // Her event için creator bilgisini ayrı ayrı çek
+    const eventsWithUsers = await Promise.all(
+      events.map(async (event) => {
+        if (event.creator_id) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('username, full_name, profile_image_url')
+            .eq('id', event.creator_id)
+            .single()
+
+          return {
+            ...event,
+            users: userData ? [userData] : null
+          }
+        }
+        return { ...event, users: null }
+      })
+    )
+
+    console.log('🎉 Events with users:', eventsWithUsers.slice(0, 2))
+
+    return eventsWithUsers
   } catch (error) {
     console.error('Etkinlikler yüklenirken genel hata:', error)
     throw new Error('Etkinlikler yüklenirken hata oluştu')
@@ -98,6 +121,7 @@ export default async function EventsPage() {
                 <th>Tarih</th>
                 <th>Konum</th>
                 <th>Durum</th>
+                <th>Aksiyonlar</th>
               </tr>
             </thead>
             <tbody>
@@ -125,24 +149,8 @@ export default async function EventsPage() {
                     </div>
                   </td>
                   <td>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {event.users?.[0]?.profile_image_url ? (
-                          <img 
-                            src={event.users[0].profile_image_url} 
-                            alt={event.users[0].username}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-sm font-semibold">
-                            {event.users?.[0]?.username?.charAt(0).toUpperCase() || 'U'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-medium truncate">{event.users?.[0]?.full_name || event.users?.[0]?.username}</div>
-                        <div className="text-sm text-muted truncate">@{event.users?.[0]?.username}</div>
-                      </div>
+                    <div className="font-medium">
+                      {event.users?.[0]?.full_name || event.users?.[0]?.username || 'Bilinmeyen Kullanıcı'}
                     </div>
                   </td>
                   <td>
@@ -176,6 +184,9 @@ export default async function EventsPage() {
                     {event.status === 'inactive' && (
                       <span className="badge badge-error">Pasif</span>
                     )}
+                  </td>
+                  <td>
+                    <EventActions eventId={event.id} status={event.status} />
                   </td>
                 </tr>
               ))}

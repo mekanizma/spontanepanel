@@ -1,6 +1,5 @@
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useState, useEffect } from 'react'
 
 interface PremiumUser {
@@ -25,34 +24,16 @@ interface User {
 
 async function getPremiumUsers(): Promise<PremiumUser[]> {
   console.log('⭐ Premium Users yükleniyor...')
-  
-  const supabase = createClientComponentClient()
-
   try {
-    console.log('⭐ Premium Users tablosundan veri çekiliyor...')
-    const { data: premiumUsers, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        username,
-        email,
-        full_name,
-        is_premium,
-        premium_expires_at,
-        created_at,
-        profile_image_url
-      `)
-      .eq('is_premium', true)
-      .order('created_at', { ascending: false })
-
-    console.log('⭐ Premium Users sonucu:', { count: premiumUsers?.length, error })
-
-    if (error) {
-      console.error('Premium kullanıcılar yüklenirken hata:', error)
-      throw new Error('Premium kullanıcılar yüklenirken hata oluştu')
+    const res = await fetch('/api/admin/users?premium=true', { cache: 'no-store' })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || `HTTP ${res.status}`)
     }
-
-    return premiumUsers || []
+    const body = await res.json()
+    console.log('⭐ API Response:', body)
+    console.log('⭐ Premium users count:', body.users?.length)
+    return body.users || []
   } catch (error) {
     console.error('Premium kullanıcılar yüklenirken genel hata:', error)
     throw new Error('Premium kullanıcılar yüklenirken hata oluştu')
@@ -60,31 +41,58 @@ async function getPremiumUsers(): Promise<PremiumUser[]> {
 }
 
 async function getAllUsers(): Promise<User[]> {
-  const supabase = createClientComponentClient()
-  
   try {
-    const { data: users, error } = await supabase
-      .from('users')
-      .select(`
-        id,
-        username,
-        email,
-        full_name,
-        is_premium,
-        profile_image_url
-      `)
-      .order('username', { ascending: true })
-
-    if (error) {
-      console.error('Kullanıcılar yüklenirken hata:', error)
-      throw new Error('Kullanıcılar yüklenirken hata oluştu')
+    const res = await fetch('/api/admin/users/all', { cache: 'no-store' })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body.error || `HTTP ${res.status}`)
     }
-
-    return users || []
+    const body = await res.json()
+    return body.users || []
   } catch (error) {
     console.error('Kullanıcılar yüklenirken genel hata:', error)
     throw new Error('Kullanıcılar yüklenirken hata oluştu')
   }
+}
+
+// İsim temizleme fonksiyonu
+function getCleanUserName(user: PremiumUser | User): string {
+  // Eğer full_name varsa direkt kullan
+  if (user.full_name) {
+    // Full name'deki tüm sayıları ve gereksiz karakterleri temizle
+    let cleanName = user.full_name;
+    // Başındaki ve sonundaki sayıları temizle
+    cleanName = cleanName.replace(/^\d+\s*/, '').replace(/\s*\d+$/, '');
+    // Kelimeler arasındaki tek başına sayıları temizle (örn: "Kart 2" -> "Kart")
+    cleanName = cleanName.replace(/\s+\d+\s*/g, ' ');
+    return cleanName.trim();
+  }
+  
+  // Username'i temizle ve isim/soyisim gibi davran
+  let username = user.username;
+  
+  // Başındaki sayıları, underscore'ları ve özel karakterleri temizle
+  username = username.replace(/^[0-9_$]+/, '');
+  
+  // Sonundaki sayılar ve karakterleri temizle
+  username = username.replace(/[0-9_]+$/, '');
+  
+  // Eğer "user_" ile başlıyorsa, onu da temizle
+  username = username.replace(/^user_/, '');
+  
+  // Underscore'ları boşlukla değiştir
+  username = username.replace(/_/g, ' ');
+  
+  // Tek başına sayıları temizle
+  username = username.replace(/\s+\d+\s*/g, ' ');
+  
+  // Trim yap ve büyük harfle başlat
+  username = username.trim();
+  if (username) {
+    username = username.charAt(0).toUpperCase() + username.slice(1).toLowerCase();
+  }
+  
+  return username || 'Kullanıcı';
 }
 
 export default function PremiumPage() {
@@ -121,23 +129,19 @@ export default function PremiumPage() {
     }
 
     try {
-      const supabase = createClientComponentClient()
-      
       // Premium bitiş tarihini hesapla
       const expiresAt = new Date()
       expiresAt.setDate(expiresAt.getDate() + parseInt(premiumDuration))
       
-      const { error } = await supabase
-        .from('users')
-        .update({ 
-          is_premium: true,
-          premium_expires_at: expiresAt.toISOString()
-        })
-        .eq('id', selectedUser)
-      
-      if (error) {
-        console.error('Premium atanırken hata:', error)
-        alert('Premium atanırken hata oluştu')
+      const res = await fetch('/api/admin/premium/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedUser, expiresAt: expiresAt.toISOString() })
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        console.error('Premium atanırken hata:', body)
+        alert(body.error || 'Premium atanırken hata oluştu')
         return
       }
       
@@ -163,18 +167,15 @@ export default function PremiumPage() {
     }
     
     try {
-      const supabase = createClientComponentClient()
-      const { error } = await supabase
-        .from('users')
-        .update({ 
-          is_premium: false,
-          premium_expires_at: null
-        })
-        .eq('id', userId)
-      
-      if (error) {
-        console.error('Premium üyelik iptal edilirken hata:', error)
-        alert('Premium üyelik iptal edilirken hata oluştu')
+      const res = await fetch('/api/admin/premium/revoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        console.error('Premium üyelik iptal edilirken hata:', body)
+        alert(body.error || 'Premium üyelik iptal edilirken hata oluştu')
         return
       }
       
@@ -294,26 +295,7 @@ export default function PremiumPage() {
               {premiumUsers.map((user) => (
                 <tr key={user.id}>
                   <td>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {user.profile_image_url ? (
-                          <img 
-                            src={user.profile_image_url} 
-                            alt={user.username}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-lg font-semibold">
-                            {user.username?.charAt(0).toUpperCase() || 'U'}
-                          </span>
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-semibold">{user.full_name || user.username}</div>
-                        <div className="text-sm text-muted">@{user.username}</div>
-                        <div className="text-xs text-muted">ID: {user.id}</div>
-                      </div>
-                    </div>
+                    <div className="font-semibold">{getCleanUserName(user)}</div>
                   </td>
                   <td>
                     <div className="text-sm">{user.email}</div>

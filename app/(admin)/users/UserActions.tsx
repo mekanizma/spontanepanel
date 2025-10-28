@@ -1,7 +1,5 @@
 'use client'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-
 interface User {
   id: string
   username: string
@@ -24,15 +22,10 @@ interface UserActionsProps {
 export default function UserActions({ user, onUpdate }: UserActionsProps) {
   async function suspendUser(userId: string) {
     try {
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from('users').update({ status: 'suspended' }).eq('id', userId)
-      
-      if (error) {
-        console.error('Kullanıcı askıya alınırken hata:', error)
-        alert('Kullanıcı askıya alınırken hata oluştu')
-        return
+      const res = await fetch(`/api/admin/users?action=suspend&id=${userId}`, { method: 'POST' })
+      if (!res.ok) {
+        throw new Error('Request failed')
       }
-      
       alert('Kullanıcı başarıyla askıya alındı')
       onUpdate()
     } catch (error) {
@@ -43,15 +36,10 @@ export default function UserActions({ user, onUpdate }: UserActionsProps) {
 
   async function unsuspendUser(userId: string) {
     try {
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from('users').update({ status: 'active' }).eq('id', userId)
-      
-      if (error) {
-        console.error('Kullanıcı askıdan çıkarılırken hata:', error)
-        alert('Kullanıcı askıdan çıkarılırken hata oluştu')
-        return
+      const res = await fetch(`/api/admin/users?action=unsuspend&id=${userId}`, { method: 'POST' })
+      if (!res.ok) {
+        throw new Error('Request failed')
       }
-      
       alert('Kullanıcı başarıyla askıdan çıkarıldı')
       onUpdate()
     } catch (error) {
@@ -66,15 +54,10 @@ export default function UserActions({ user, onUpdate }: UserActionsProps) {
     }
     
     try {
-      const supabase = createClientComponentClient()
-      const { error } = await supabase.from('users').delete().eq('id', userId)
-      
-      if (error) {
-        console.error('Kullanıcı silinirken hata:', error)
-        alert('Kullanıcı silinirken hata oluştu')
-        return
+      const res = await fetch(`/api/admin/users?action=delete&id=${userId}`, { method: 'POST' })
+      if (!res.ok) {
+        throw new Error('Request failed')
       }
-      
       alert('Kullanıcı başarıyla silindi')
       onUpdate()
     } catch (error) {
@@ -88,14 +71,14 @@ export default function UserActions({ user, onUpdate }: UserActionsProps) {
       {user.status === 'suspended' ? (
         <button 
           onClick={() => unsuspendUser(user.id)}
-          className="btn btn-success btn-sm"
+          className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors"
         >
           Askıdan Çıkar
         </button>
       ) : (
         <button 
           onClick={() => suspendUser(user.id)}
-          className="btn btn-warning btn-sm"
+          className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 transition-colors"
         >
           Askıya Al
         </button>
@@ -103,7 +86,7 @@ export default function UserActions({ user, onUpdate }: UserActionsProps) {
       
       <button 
         onClick={() => deleteUser(user.id)}
-        className="btn btn-danger btn-sm"
+        className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
       >
         Sil
       </button>
