@@ -52,7 +52,7 @@ async function getStories(): Promise<Story[]> {
     }
 
     // Kullanıcı bilgilerini ayrı olarak çek
-    const userIds = [...new Set(stories.map((s: any) => s.user_id))]
+    const userIds = Array.from(new Set(stories.map((s: any) => s.user_id)))
     console.log('🔍 User IDs:', userIds)
     
     // Önce users tablosunu dene
