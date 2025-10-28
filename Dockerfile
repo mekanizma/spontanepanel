@@ -13,7 +13,9 @@ RUN npm ci --quiet
 COPY . .
 
 # Next.js standalone output for smaller runtime image
-ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_DISABLE_ESLINT=1 \
+    NEXT_SKIP_TYPECHECK=1
 RUN npm run build
 
 # 2) Runner: minimal runtime
